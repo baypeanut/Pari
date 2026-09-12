@@ -25,6 +25,7 @@ struct WineLabelScanView: View {
     @State private var momentImageData: Data? = nil
     @State private var vintage: Int? = nil
     @State private var structure = PalateStructure.empty
+    @State private var pendingSave: TastingSaveAttempt?
     @State private var isSaving = false
     @State private var saveError: String? = nil
 
@@ -269,7 +270,8 @@ struct WineLabelScanView: View {
             visibility: $visibility,
             momentImageData: $momentImageData,
             vintage: $vintage,
-            structure: $structure
+            structure: $structure,
+            isAwaitingConfirmation: pendingSave != nil
         ) {
             Task {
                 let notesArray = selectedNotes.isEmpty ? nil : Array(selectedNotes)
@@ -360,6 +362,9 @@ struct WineLabelScanView: View {
         comment: String,
         visibility: TastingVisibility
     ) async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
         guard let userId = await AuthService.currentUserId() else {
             saveError = ErrorMessage.unauthorized
             return
@@ -368,26 +373,23 @@ struct WineLabelScanView: View {
             saveError = ContentModeration.blockedMessage
             return
         }
-        isSaving = true
         saveError = nil
-        var momentURL: String?
-        if let data = momentImageData {
-            momentURL = try? await MomentStorageService.uploadMoment(userId: userId, jpegData: data)
-        }
         let countBefore = await TastingService.fetchTastingsCount(userId: userId)
         do {
-            _ = try await TastingService.createTasting(
-                userId: userId,
-                wineId: wine.id,
-                rating: rating,
-                noteTags: notes,
-                comment: comment.isEmpty ? nil : comment,
-                source: "scan",
-                visibility: visibility,
-                vintage: vintage,
-                structure: structure,
-                momentImageURL: momentURL
-            )
+            if pendingSave == nil {
+                var momentURL: String?
+                if let data = momentImageData {
+                    momentURL = try await MomentStorageService.uploadMoment(userId: userId, jpegData: data)
+                }
+                pendingSave = TastingSaveAttempt(
+                    id: UUID(), userId: userId, wineId: wine.id,
+                    tasting: TastingWritePayload(rating: rating, noteTags: notes, comment: comment,
+                        visibility: visibility, vintage: vintage, structure: structure),
+                    source: "scan", momentImageURL: momentURL
+                )
+            }
+            guard let attempt = pendingSave else { return }
+            _ = try await TastingService.createTasting(attempt)
             AnalyticsService.tastingCreate(wineId: wine.id, rating: rating)
             if countBefore == 0 {
                 AnalyticsService.firstTastingSaved(wineId: wine.id, rating: rating)
@@ -397,7 +399,6 @@ struct WineLabelScanView: View {
         } catch {
             saveError = ErrorMessage.userFacing(for: error)
         }
-        isSaving = false
     }
 }
 

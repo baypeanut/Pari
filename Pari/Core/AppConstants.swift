@@ -20,10 +20,13 @@ enum AppConstants {
     /// When false, skip login/signup (dev/test). Set true for production / App Store.
     static let authRequired = true
 
-    enum Cache {
-        /// v5 = bump to invalidate stale cache after pariTastingCreated fix.
-        static let feedGlobalKey = "pari_feed_global_v5"
-        static let feedFollowingKey = "pari_feed_following_v5"
+    /// Open the app's screens without signing in when previewing in the simulator.
+    static var bypassLogin: Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        return ProcessInfo.processInfo.arguments.contains("--bypass-login")
+        #else
+        return false
+        #endif
     }
 
     #if DEBUG

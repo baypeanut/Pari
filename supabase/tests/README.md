@@ -1,0 +1,26 @@
+# Database regression tests
+
+Run from the repository root with Node.js:
+
+```sh
+npm --prefix supabase/tests ci --ignore-scripts
+npm --prefix supabase/tests test
+```
+
+The suite uses pinned PGlite 0.5.8 (embedded PostgreSQL). It never connects to a
+Supabase project. All three `20260911` migrations run verbatim against synthetic
+users and wines. Earlier table definitions, RLS policies and the latest feed
+view/RPC definitions are loaded from the repository's migration files.
+
+The 16 scenarios cover save replay, full-field edits and clearing, atomic rollback,
+ownership, validation, linked deletion, legacy links, public/friends/profile
+privacy, anonymous access, friendship revocation, both feed RPCs, the feed view,
+interaction access, Storage object policies and the taste helper's execute grant.
+Node reports 17 tests because the parent test is also counted.
+
+This is **not a full Supabase stack test**: Auth and Storage infrastructure are
+fixtures; the pgvector helper is a permission-test stub; embedding triggers,
+PostgREST serialization, real object downloads, CDN behavior and parallel network
+requests require staging verification. Replay tests use sequential requests.
+PostgreSQL's primary-key conflict handling serializes concurrent saves of the
+same ID, but that needs an API-level concurrency check before release.

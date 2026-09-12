@@ -1,0 +1,32 @@
+{
+  "environment": "PGlite 0.5.8, isolated in-memory PostgreSQL; original schema/policy fragments; synthetic users only",
+  "findings": [
+    {
+      "test": "cellar_upsert_conflict_target",
+      "reproduced": true,
+      "code": "42P10",
+      "message": "there is no unique or exclusion constraint matching the ON CONFLICT specification"
+    },
+    {
+      "test": "session_members_select_policy",
+      "reproduced": true,
+      "code": "42P17",
+      "message": "infinite recursion detected in policy for relation \"tasting_session_members\""
+    },
+    {
+      "test": "session_leave_delete_policy",
+      "reproduced": true,
+      "code": "42P17",
+      "message": "infinite recursion detected in policy for relation \"tasting_session_members\""
+    },
+    {
+      "test": "friends_only_tasting_visible_to_nonfriend",
+      "reproduced": true,
+      "visible_rows": [
+        {
+          "visibility": "friends"
+        }
+      ]
+    }
+  ]
+}

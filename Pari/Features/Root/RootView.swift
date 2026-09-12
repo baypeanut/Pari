@@ -34,6 +34,8 @@ struct RootView: View {
                         showDrinkResponsibly = true
                     }
                 }
+            } else if AppConstants.bypassLogin {
+                mainContent
             } else {
                 switch authStore.state {
                 case .checking:
@@ -49,35 +51,7 @@ struct RootView: View {
                     if authStore.needsProfileSetup {
                         ProfileSetupView(userId: userId)
                     } else {
-                        mainTabs
-                            .onChange(of: DeepLinkRouter.shared.pendingRoute) { _, route in
-                                guard let route else { return }
-                                handleDeepLink(route)
-                            }
-                            .sheet(item: $deepLinkWine) { wine in
-                                NavigationStack {
-                                    WineCardView(wine: wine, activityId: nil, currentUserId: userId)
-                                }
-                            }
-                            .sheet(isPresented: Binding(
-                                get: { deepLinkProfileUsername != nil },
-                                set: { if !$0 { deepLinkProfileUsername = nil } }
-                            )) {
-                                if let username = deepLinkProfileUsername {
-                                    DeepLinkProfileResolver(username: username) {
-                                        deepLinkProfileUsername = nil
-                                    }
-                                }
-                            }
-                            .fullScreenCover(isPresented: $showAddWineFromCarousel) {
-                                AddWineSheet(
-                                    isPresented: $showAddWineFromCarousel,
-                                    onWineAdded: { showAddWineFromCarousel = false }
-                                )
-                            }
-                            .fullScreenCover(isPresented: $showLabelScan) {
-                                WineLabelScanView(isPresented: $showLabelScan)
-                            }
+                        mainContent
                     }
                 }
             }
@@ -130,6 +104,39 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(AppearanceStorage.resolvedColorScheme(for: appearanceRaw))
+    }
+
+    private var mainContent: some View {
+        mainTabs
+            .id(authStore.sessionGeneration)
+            .onChange(of: DeepLinkRouter.shared.pendingRoute) { _, route in
+                guard let route else { return }
+                handleDeepLink(route)
+            }
+            .sheet(item: $deepLinkWine) { wine in
+                NavigationStack {
+                    WineCardView(wine: wine, activityId: nil, currentUserId: authStore.currentUserId)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkProfileUsername != nil },
+                set: { if !$0 { deepLinkProfileUsername = nil } }
+            )) {
+                if let username = deepLinkProfileUsername {
+                    DeepLinkProfileResolver(username: username) {
+                        deepLinkProfileUsername = nil
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showAddWineFromCarousel) {
+                AddWineSheet(
+                    isPresented: $showAddWineFromCarousel,
+                    onWineAdded: { showAddWineFromCarousel = false }
+                )
+            }
+            .fullScreenCover(isPresented: $showLabelScan) {
+                WineLabelScanView(isPresented: $showLabelScan)
+            }
     }
 
     private var mainTabs: some View {

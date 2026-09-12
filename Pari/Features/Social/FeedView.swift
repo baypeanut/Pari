@@ -21,6 +21,7 @@ private struct ProfileSheetItem: Identifiable, Hashable {
 
 struct FeedView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = FeedViewModel()
     @State private var profileSheetItem: ProfileSheetItem?
     @State private var currentUserId: UUID?
@@ -29,12 +30,14 @@ struct FeedView: View {
         mainContent
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                viewModel.loadFromCache()
                 viewModel.subscribeRealtime()
                 Task { await viewModel.refresh() }
                 AnalyticsService.feedView()
             }
             .onDisappear { viewModel.unsubscribeRealtime() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await viewModel.refresh() } }
+            }
             .onReceive(NotificationCenter.default.publisher(for: .pariProfileUpdated)) { _ in
                 viewModel.patchCurrentUserOverrides()
             }

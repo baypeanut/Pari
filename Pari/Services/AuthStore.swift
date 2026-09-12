@@ -44,7 +44,15 @@ final class AuthStore {
     private let logger = Logger(subsystem: "com.ahmet.pari", category: "AuthStore")
 
     var state: State = .checking
-    var currentUserId: UUID?
+    var currentUserId: UUID? {
+        didSet {
+            if oldValue != currentUserId {
+                sessionGeneration = UUID()
+                ProfileStore.shared.clearForSignOut()
+            }
+        }
+    }
+    private(set) var sessionGeneration = UUID()
     var userSnapshot: AuthUserSnapshot?
     var authResultEvent: AuthResultEvent?
     var sessionRestored = false
@@ -66,11 +74,13 @@ final class AuthStore {
                 await refreshCurrentUserSnapshot()
                 NotificationCenter.default.post(name: .pariSessionReady, object: nil)
             } else {
+                currentUserId = nil
                 state = .unauthenticated
                 userSnapshot = nil
             }
         } catch {
             logger.error("restoreSession failed: \(error.localizedDescription)")
+            currentUserId = nil
             state = .unauthenticated
         }
         sessionRestored = true
@@ -126,6 +136,9 @@ final class AuthStore {
     }
 
     func signOut() async {
+        sessionGeneration = UUID()
+        await TasteVectorCache.shared.invalidate()
+        ProfileStore.shared.clearForSignOut()
         do {
             try await AuthService.signOut()
         } catch {

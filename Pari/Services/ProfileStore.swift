@@ -20,40 +20,36 @@ final class ProfileStore {
     private init() {}
 
     func load() async {
+        let session = AuthStore.shared.sessionGeneration
         guard let uid = await AuthService.currentUserId() else {
-            currentProfile = nil
+            if session == AuthStore.shared.sessionGeneration {
+                currentProfile = nil
+                tastingCount = 0
+            }
             return
         }
-        AnalyticsService.identify(userId: uid)
+        var profile: Profile?
         #if DEBUG
         if !AppConstants.authRequired {
-            if let dev = await DevSignupService.fetchDevAccount(userId: uid) {
-                currentProfile = dev
-                tastingCount = await TastingService.fetchTastingsCount(userId: uid)
-                return
-            }
+            profile = await DevSignupService.fetchDevAccount(userId: uid)
         }
         #endif
-        do {
-            currentProfile = try await AuthService.getProfile(userId: uid)
-            tastingCount = await TastingService.fetchTastingsCount(userId: uid)
-        } catch {
-            #if DEBUG
-            if !AppConstants.authRequired {
-                currentProfile = Profile(id: uid, username: "Dev", fullName: nil, avatarURL: nil, bio: nil)
-                tastingCount = await TastingService.fetchTastingsCount(userId: uid)
-            } else {
-                currentProfile = nil
-            }
-            #else
-            currentProfile = nil
-            #endif
-        }
+        if profile == nil { profile = try? await AuthService.getProfile(userId: uid) }
+        let count = await TastingService.fetchTastingsCount(userId: uid)
+        guard session == AuthStore.shared.sessionGeneration,
+              AuthStore.shared.currentUserId == uid else { return }
+        currentProfile = profile
+        tastingCount = count
+        AnalyticsService.identify(userId: uid)
     }
 
-    /// Increment local tasting count (called after tasting creation to keep tier fresh).
-    func incrementTastingCount() {
-        tastingCount += 1
+    /// Use the server count so a replayed save never increments the count twice.
+    func refreshTastingCount(userId: UUID) async {
+        let session = AuthStore.shared.sessionGeneration
+        let count = await TastingService.fetchTastingsCount(userId: userId)
+        guard session == AuthStore.shared.sessionGeneration,
+              AuthStore.shared.currentUserId == userId else { return }
+        tastingCount = count
     }
 
     /// Clear cached profile (e.g. on sign out in dev mode).

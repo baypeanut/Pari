@@ -32,6 +32,7 @@ actor TasteVectorCache {
     }
 
     private var memory: Stored?
+    private var generation = UUID()
 
     // MARK: - Access
 
@@ -39,13 +40,18 @@ actor TasteVectorCache {
     /// order. Nil when they have no tastings yet, which is a normal state and not
     /// an error worth surfacing.
     func vector(forceRefresh: Bool = false) async -> [Double]? {
+        let requestGeneration = generation
         guard let userId = await AuthService.currentUserId() else { return nil }
+        guard requestGeneration == generation else { return nil }
 
         if !forceRefresh, let cached = valid(for: userId) {
             return cached.vector
         }
 
         if let fetched = await fetch(), fetched.count == Self.dimensions {
+            guard requestGeneration == generation,
+                  await AuthService.currentUserId() == userId,
+                  requestGeneration == generation else { return nil }
             let stored = Stored(vector: fetched, fetchedAt: Date(), userId: userId)
             memory = stored
             persist(stored)
@@ -54,11 +60,13 @@ actor TasteVectorCache {
 
         // Network failed. A stale vector ranks better than no ranking at all, which
         // is the entire reason this cache exists.
+        guard requestGeneration == generation else { return nil }
         return valid(for: userId, ignoringAge: true)?.vector
     }
 
     /// Drop the cache after a tasting, since the vector has moved.
     func invalidate() {
+        generation = UUID()
         memory = nil
         UserDefaults.standard.removeObject(forKey: Self.storageKey)
     }

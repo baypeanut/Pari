@@ -67,6 +67,7 @@ final class FeedViewModel {
     private(set) var currentUserId: UUID?
     private var mutedUserIds: Set<UUID> = MuteService.mutedUserIds()
     private let pageSize = 30
+    private var feedGeneration = UUID()
 
     var mode: FeedMode {
         switch tab {
@@ -76,20 +77,23 @@ final class FeedViewModel {
         }
     }
 
-    func loadFromCache() {
-        let raw = FeedService.shared.loadFromCache(mode: mode)
-        items = raw.filter { $0.username.trimmingCharacters(in: .whitespaces).lowercased() != "guest" }
-    }
-
     func refresh() async {
         guard !isRefreshing else { return }
-        loadFromCache()
+        let requestedTab = tab
+        feedGeneration = UUID()
+        items = []
         isRefreshing = true
+        defer {
+            isRefreshing = false
+            if tab != requestedTab, tab.isFeed {
+                Task { await refresh() }
+            }
+        }
         errorMessage = nil
         do {
             try await fetchAndApply()
         } catch {
-            guard !isCancellation(error) else { isRefreshing = false; return }
+            guard !isCancellation(error) else { return }
             // Retry once after 1 s for transient network errors before surfacing to the user.
             if isTransientNetworkError(error) {
                 try? await Task.sleep(for: .seconds(1))
@@ -114,7 +118,6 @@ final class FeedViewModel {
             suggestedUsers = []
             staffPicks = []
         }
-        isRefreshing = false
     }
 
     /// Load next page using keyset cursor from last item's createdAt.
@@ -122,6 +125,9 @@ final class FeedViewModel {
         guard !isLoadingMore, !isRefreshing, hasMorePages else { return }
         guard let cursor = items.last?.createdAt else { return }
         isLoadingMore = true
+        let session = AuthStore.shared.sessionGeneration
+        let requestedMode = mode
+        let generation = feedGeneration
         do {
             var fetched: [FeedItem]
             switch mode {
@@ -147,9 +153,11 @@ final class FeedViewModel {
                 enriched[i].cheersCount = likeCounts[enriched[i].id] ?? 0
                 enriched[i].hasCheered = likedIDs.contains(enriched[i].id)
             }
+            guard session == AuthStore.shared.sessionGeneration, mode == requestedMode,
+                  generation == feedGeneration,
+                  !Task.isCancelled else { throw CancellationError() }
             items.append(contentsOf: enriched)
             computeFriendsTastedCounts()
-            FeedService.shared.saveToCache(items, mode: mode)
         } catch {
             if !isCancellation(error) { errorMessage = ErrorMessage.userFacing(for: error) }
         }
@@ -158,6 +166,9 @@ final class FeedViewModel {
 
     /// Core fetch + enrich + apply pipeline. Extracted so retry can call it without duplication.
     private func fetchAndApply() async throws {
+        let session = AuthStore.shared.sessionGeneration
+        let requestedMode = mode
+        let uid = AuthStore.shared.currentUserId
         hasMorePages = true
         var fetched: [FeedItem]
         switch mode {
@@ -170,7 +181,6 @@ final class FeedViewModel {
         let ids = fetched.map(\.id)
         let likeCounts: [UUID: Int]
         var likedIDs: Set<UUID> = []
-        let uid = await AuthService.currentUserId()
         currentUserId = uid
         if let uid = uid {
             async let lc = SocialService.fetchLikeCounts(activityIDs: ids)
@@ -196,10 +206,11 @@ final class FeedViewModel {
             print("[FeedViewModel] filtered out \(fetched.count - filtered.count) Guest feed items")
         }
         #endif
+        guard session == AuthStore.shared.sessionGeneration, mode == requestedMode,
+              !Task.isCancelled else { throw CancellationError() }
         items = filtered
         patchCurrentUserOverrides()
         computeFriendsTastedCounts()
-        FeedService.shared.saveToCache(items, mode: mode)
         if let uid = currentUserId {
             do {
                 wishlistWineIds = try await CellarService.fetchWishlistWineIds(userId: uid)
@@ -276,7 +287,7 @@ final class FeedViewModel {
         guard newTab != tab else { return }
         tab = newTab
         guard newTab.isFeed else { return }
-        loadFromCache()
+        items = []
         Task { await refresh() }
     }
 
@@ -304,7 +315,6 @@ final class FeedViewModel {
             u.cheersCount += u.hasCheered ? 1 : -1
             items[idx] = u
             AnalyticsService.likeToggle(activityId: item.id, added: u.hasCheered)
-            FeedService.shared.saveToCache(items, mode: mode)
             NotificationCenter.default.post(
                 name: .pariLikeToggled,
                 object: nil,
@@ -349,12 +359,11 @@ final class FeedViewModel {
 
     /// Override username/avatar for current user from ProfileStore. Call after refresh and on pariProfileUpdated.
     func patchCurrentUserOverrides() {
-        guard let uid = currentUserId, let p = ProfileStore.shared.currentProfile else { return }
+        guard let uid = currentUserId, let p = ProfileStore.shared.currentProfile, p.id == uid else { return }
         for i in items.indices where items[i].userId == uid {
             items[i].username = p.displayName
             items[i].avatarURL = p.avatarURL
         }
-        FeedService.shared.saveToCache(items, mode: mode)
     }
 
     /// Mute user: persist to MuteService and remove their posts from local state immediately.
@@ -362,7 +371,6 @@ final class FeedViewModel {
         MuteService.mute(item.userId)
         mutedUserIds.insert(item.userId)
         items.removeAll { $0.userId == item.userId }
-        FeedService.shared.saveToCache(items, mode: mode)
     }
 
     /// Delete a feed item (only for own posts). Removes from DB and local state.
@@ -371,7 +379,6 @@ final class FeedViewModel {
         do {
             try await FeedService.shared.deleteFeedActivity(activityId: item.id)
             items.removeAll { $0.id == item.id }
-            FeedService.shared.saveToCache(items, mode: mode)
         } catch {
             if !isCancellation(error) { errorMessage = ErrorMessage.userFacing(for: error) }
         }

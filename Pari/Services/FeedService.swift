@@ -10,27 +10,9 @@ import Supabase
 
 final class FeedService {
     static let shared = FeedService()
-    private let cache = FeedCache()
     private let pageSize = 30
 
-    private init() {}
-
-    // MARK: - Cache
-
-    func loadFromCache(mode: FeedMode) -> [FeedItem] {
-        cache.load(cacheKey(for: mode))
-    }
-
-    func saveToCache(_ items: [FeedItem], mode: FeedMode) {
-        cache.save(items, key: cacheKey(for: mode))
-    }
-
-    private func cacheKey(for mode: FeedMode) -> String {
-        switch mode {
-        case .global: return AppConstants.Cache.feedGlobalKey
-        case .following: return AppConstants.Cache.feedFollowingKey
-        }
-    }
+    private init() { FeedCache.clearLegacyFiles() }
 
     // MARK: - Fetch
 

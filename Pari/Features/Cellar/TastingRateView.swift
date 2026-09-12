@@ -20,6 +20,7 @@ struct TastingRateView: View {
     @Binding var vintage: Int?
     /// WSET structural reading. Hidden from novices entirely.
     @Binding var structure: PalateStructure
+    var isAwaitingConfirmation: Bool = false
     var onCheers: () -> Void
     var isEditMode: Bool = false
 
@@ -43,31 +44,41 @@ struct TastingRateView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
-                wineIdentitySection
-                ratingSection
-                    .padding(.top, 36)
-                Divider()
-                    .padding(.horizontal, 24)
-                    .padding(.top, 32)
-                notesSection
-                    .padding(.top, 24)
-                // Withheld from novices: someone logging their fourth wine ever does
-                // not have the vocabulary yet, and asking anyway teaches them to
-                // answer at random, which poisons the signal we are here to collect.
-                if expertiseTier != .novice {
-                    PalateStructureView(
-                        structure: $structure,
-                        wineCategory: wine.category,
-                        accentColor: wineTypeColor
-                    )
-                    .padding(.top, 24)
+                Group {
+                    wineIdentitySection
+                    ratingSection
+                        .padding(.top, 36)
+                    Divider()
+                        .padding(.horizontal, 24)
+                        .padding(.top, 32)
+                    notesSection
+                        .padding(.top, 24)
+                    // Withheld from novices: someone logging their fourth wine ever does
+                    // not have the vocabulary yet, and asking anyway teaches them to
+                    // answer at random, which poisons the signal we are here to collect.
+                    if expertiseTier != .novice {
+                        PalateStructureView(
+                            structure: $structure,
+                            wineCategory: wine.category,
+                            accentColor: wineTypeColor
+                        )
+                        .padding(.top, 24)
+                    }
+                    momentPhotoSection
+                        .padding(.top, 24)
+                    commentSection
+                        .padding(.top, 24)
+                    visibilityPicker
+                        .padding(.top, 24)
                 }
-                momentPhotoSection
-                    .padding(.top, 24)
-                commentSection
-                    .padding(.top, 24)
-                visibilityPicker
-                    .padding(.top, 24)
+                .disabled(isAwaitingConfirmation)
+                if isAwaitingConfirmation {
+                    Text("Your entry is waiting for confirmation. Retry the save to finish; your original answers are kept.")
+                        .font(.footnote)
+                        .foregroundStyle(PariTheme.secondaryText)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                }
                 saveButton
                     .padding(.top, 20)
                     .padding(.bottom, 40)
@@ -78,8 +89,8 @@ struct TastingRateView: View {
         }
         .onAppear {
             // Seed from the tasting being edited, else from the scanned/catalog vintage.
-            vintageText = (vintage ?? wine.vintage).map(String.init) ?? ""
-            vintage = vintage ?? wine.vintage
+            if !isEditMode { vintage = vintage ?? wine.vintage }
+            vintageText = vintage.map(String.init) ?? ""
         }
     }
 
@@ -371,7 +382,7 @@ struct TastingRateView: View {
             HStack(spacing: 6) {
                 Image(systemName: isEditMode ? "checkmark" : "wineglass.fill")
                     .font(.system(size: 14))
-                Text(isEditMode ? "Save" : "Save Tasting")
+                Text(isAwaitingConfirmation ? "Retry Save" : (isEditMode ? "Save" : "Save Tasting"))
                     .font(PariTheme.uiFont(size: 15, weight: .medium))
             }
             .foregroundStyle(.white)

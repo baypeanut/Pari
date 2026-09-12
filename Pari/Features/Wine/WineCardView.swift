@@ -550,7 +550,7 @@ struct WineCardView: View {
         editSelectedNotes = Set(tasting.noteTags ?? [])
         editComment = tasting.comment ?? ""
         editVisibility = tasting.visibility
-        editVintage = tasting.displayVintage
+        editVintage = tasting.vintage
         editStructure = tasting.structure
         showEditSheet = true
     }
@@ -564,7 +564,9 @@ struct WineCardView: View {
                 rating: editRating,
                 noteTags: Array(editSelectedNotes),
                 comment: editComment,
-                vintage: editVintage
+                visibility: editVisibility,
+                vintage: editVintage,
+                structure: editStructure
             )
             userTasting = updatedTasting
             showEditSheet = false

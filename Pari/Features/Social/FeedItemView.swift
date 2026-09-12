@@ -289,20 +289,8 @@ struct FeedItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Moment photo (wine night) — small circle top-right of card row
-                if let urlString = item.momentImageURL, let url = URL(string: urlString) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        case .failure, .empty:
-                            Circle()
-                                .fill(PariTheme.placeholderBackground(for: colorScheme))
-                                .overlay(Image(systemName: "photo").font(.system(size: 14)).foregroundStyle(PariTheme.textTertiary(for: colorScheme)))
-                        @unknown default:
-                            Circle()
-                                .fill(PariTheme.placeholderBackground(for: colorScheme))
-                        }
-                    }
+                if let reference = item.momentImageURL {
+                    MomentPhoto(reference: reference)
                     .frame(width: 44, height: 44)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(PariTheme.divider(for: colorScheme), lineWidth: 1))
