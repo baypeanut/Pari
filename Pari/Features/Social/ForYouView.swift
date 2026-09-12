@@ -61,6 +61,9 @@ struct ForYouView: View {
             // A new tasting moves the taste vector, so the ranking is now stale.
             Task { await viewModel.load() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .pariCellarInventoryChanged)) { _ in
+            Task { await viewModel.load() }
+        }
         .fullScreenCover(isPresented: $showListScan) {
             WineListScanView(isPresented: $showListScan, currentUserId: currentUserId)
         }

@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-12",
+  "branch": "codex/reliable-wine-memory",
+  "swift": {
+    "result": "Passed",
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0,
+    "device": "iPhone 17, iOS 26.2 Simulator, arm64",
+    "resultBundle": "/tmp/Pari-inventory-verified.xcresult",
+    "log": "/tmp/pari-inventory-verified.log"
+  },
+  "database": {
+    "runtime": "PGlite 0.5.8, isolated PostgreSQL",
+    "tastingScenariosPassed": 16,
+    "inventoryScenariosPassed": 13,
+    "nodeTestsIncludingParents": 31,
+    "failed": 0,
+    "log": "/tmp/pari-inventory-db-1.log",
+    "newMigrationsExecutedVerbatim": 4,
+    "fullSupabaseStackTested": false,
+    "productionModified": false
+  }
+}

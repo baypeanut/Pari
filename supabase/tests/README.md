@@ -12,11 +12,16 @@ Supabase project. All three `20260911` migrations run verbatim against synthetic
 users and wines. Earlier table definitions, RLS policies and the latest feed
 view/RPC definitions are loaded from the repository's migration files.
 
-The 16 scenarios cover save replay, full-field edits and clearing, atomic rollback,
+The 16 tasting scenarios cover save replay, full-field edits and clearing, atomic rollback,
 ownership, validation, linked deletion, legacy links, public/friends/profile
 privacy, anonymous access, friendship revocation, both feed RPCs, the feed view,
 interaction access, Storage object policies and the taste helper's execute grant.
-Node reports 17 tests because the parent test is also counted.
+The 13 cellar scenarios cover additive stock changes, unknown and known vintages,
+replay receipts, mismatched requests, ownership, empty stock, input validation,
+direct-write restrictions, rollback in both directions and integer overflow.
+
+All four new migrations run verbatim across the two fixture databases. Node reports
+31 tests: 29 scenarios plus their two parent tests.
 
 This is **not a full Supabase stack test**: Auth and Storage infrastructure are
 fixtures; the pgvector helper is a permission-test stub; embedding triggers,

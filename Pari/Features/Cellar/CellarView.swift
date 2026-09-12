@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct CellarView: View {
+    private enum Section: String, CaseIterable { case tastings = "Tastings", bottles = "Bottles" }
+    @State private var section: Section = .tastings
     @Environment(\.colorScheme) private var colorScheme
     @State private var viewModel = CellarViewModel()
     @State private var showAddWine = false
@@ -19,7 +21,13 @@ struct CellarView: View {
 
             VStack(spacing: 0) {
                 header
-                content
+                Picker("Cellar section", selection: $section) {
+                    ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                if section == .bottles { BottleInventoryView() } else { content }
             }
         }
         .task {
@@ -59,7 +67,7 @@ struct CellarView: View {
                 .font(PariTheme.titleFont())
                 .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
             Spacer()
-            if !viewModel.needsAuth, let _ = viewModel.currentUserId {
+            if section == .tastings, !viewModel.needsAuth, let _ = viewModel.currentUserId {
                 HStack(spacing: 12) {
                     if !viewModel.tastings.isEmpty {
                         Button {
@@ -122,11 +130,11 @@ struct CellarView: View {
                 .foregroundStyle(PariTheme.accentWine(for: colorScheme).opacity(0.25))
                 .padding(.top, 48)
             VStack(spacing: 8) {
-                Text("Your cellar awaits its first bottle.")
+                Text("Your first tasting starts here.")
                     .font(.system(.title3, design: .serif, weight: .regular))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
                     .multilineTextAlignment(.center)
-                Text("Every great collection begins with one glass.")
+                Text("Keep the wines and moments you want to remember.")
                     .font(PariTheme.uiFont(size: 15))
                     .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
                     .multilineTextAlignment(.center)

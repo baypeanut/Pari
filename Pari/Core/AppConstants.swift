@@ -49,6 +49,8 @@ extension Notification.Name {
     static let pariSwitchToCellarTab = Notification.Name("pariSwitchToCellarTab")
     /// Wishlist updated; Feed should refresh wishlist IDs.
     static let pariWishlistUpdated = Notification.Name("pariWishlistUpdated")
+    /// Owned bottle quantities changed; discovery should refresh its cellar picks.
+    static let pariCellarInventoryChanged = Notification.Name("pariCellarInventoryChanged")
     /// Tasting created; Feed should refresh to show new activity.
     static let pariTastingCreated = Notification.Name("pariTastingCreated")
     /// User tried to add an already-tasted wine to wishlist. Observers show toast.

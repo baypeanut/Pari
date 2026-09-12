@@ -115,39 +115,73 @@ enum CellarBottleService {
         }
     }
 
-    /// Add bottles. Same wine and vintage stacks rather than duplicating a row.
-    static func addBottles(wineId: UUID, vintage: Int?, quantity: Int, location: String? = nil) async throws {
-        guard let userId = await AuthService.currentUserId() else {
-            throw NSError(domain: "CellarBottleService", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: ErrorMessage.unauthorized])
+    /// Owned stock is a separate surface from tasting history. Fetch every page,
+    /// so a large cellar is not silently truncated by PostgREST's row limit.
+    static func fetchOwnedBottles() async throws -> [OwnedBottle] {
+        guard let userId = await AuthService.currentUserId() else { throw StockError.unauthorized }
+        let session = AuthStore.shared.sessionGeneration
+        var result: [OwnedBottle] = []
+        let pageSize = 200
+        var offset = 0
+        while true {
+            let rows: [InventoryRow] = try await supabase.from("cellar_bottles")
+                .select("id, wine_id, vintage, quantity, location, wines(name, producer, variety, region, label_image_url, category)")
+                .eq("user_id", value: userId).gt("quantity", value: 0)
+                .order("created_at", ascending: false).order("id", ascending: true)
+                .range(from: offset, to: offset + pageSize - 1).execute().value
+            guard session == AuthStore.shared.sessionGeneration, !Task.isCancelled else { throw CancellationError() }
+            result.append(contentsOf: rows.map(\.bottle))
+            if rows.count < pageSize { return result }
+            offset += pageSize
         }
-        struct Upsert: Encodable {
-            let user_id: UUID
-            let wine_id: UUID
-            let vintage: Int?
-            let quantity: Int
-            let location: String?
-        }
-        try await supabase
-            .from("cellar_bottles")
-            .upsert(Upsert(user_id: userId, wine_id: wineId, vintage: vintage,
-                           quantity: max(0, quantity), location: location),
-                    onConflict: "user_id,wine_id,vintage")
-            .execute()
     }
 
-    /// Drink one. Reaching zero leaves the row so the history of having owned it stays.
-    static func drinkOne(bottleId: UUID) async throws {
-        struct Row: Decodable { let quantity: Int }
-        let rows: [Row] = try await supabase
-            .from("cellar_bottles").select("quantity").eq("id", value: bottleId)
-            .limit(1).execute().value
-        guard let current = rows.first, current.quantity > 0 else { return }
+    struct InventoryRow: Decodable {
+        let id: UUID
+        let wine_id: UUID
+        let vintage: Int?
+        let quantity: Int
+        let location: String?
+        let wines: WineRef
 
-        try await supabase
-            .from("cellar_bottles")
-            .update(["quantity": current.quantity - 1])
-            .eq("id", value: bottleId)
-            .execute()
+        struct WineRef: Decodable {
+            let name: String
+            let producer: String
+            let variety: String?
+            let region: String?
+            let label_image_url: String?
+            let category: String?
+        }
+
+        var bottle: OwnedBottle {
+            OwnedBottle(id: id,
+                wine: Wine(id: wine_id, name: wines.name, producer: wines.producer,
+                    vintage: vintage, variety: wines.variety, region: wines.region,
+                    labelImageURL: wines.label_image_url, category: wines.category),
+                vintage: vintage, quantity: quantity, location: location)
+        }
+    }
+
+    /// The caller keeps requestId until confirmation, including across retries.
+    static func addBottles(_ request: AddBottlesRequest) async throws -> CellarStockResult {
+        try await supabase.rpc("add_cellar_bottles", params: request).execute().value
+    }
+
+    static func drinkOne(_ request: DrinkBottleRequest) async throws -> CellarStockResult {
+        do {
+            return try await supabase.rpc("drink_cellar_bottle", params: request).execute().value
+        } catch let error as PostgrestError where error.code == "P0002" {
+            throw StockError.unavailable
+        }
+    }
+
+    enum StockError: LocalizedError {
+        case unauthorized, unavailable
+        var errorDescription: String? {
+            switch self {
+            case .unauthorized: return ErrorMessage.unauthorized
+            case .unavailable: return "This bottle is unavailable or already empty."
+            }
+        }
     }
 }
