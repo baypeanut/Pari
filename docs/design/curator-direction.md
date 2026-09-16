@@ -1,7 +1,9 @@
 # Pari — curator direction
 
-Date: 16 September 2026  
-Baseline: `027c188`  
+Date: 16 September 2026
+
+Baseline: `027c188`
+
 Status: implemented design accepted after three reviews of the running app on 16 September 2026. See `curator-review.md` for corrections and verification limits.
 
 ## The idea: a private wine journal
