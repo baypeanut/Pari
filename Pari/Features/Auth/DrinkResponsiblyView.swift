@@ -45,7 +45,7 @@ struct DrinkResponsiblyView: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(PariTheme.actionFill(for: colorScheme))
+                        .background(PariTheme.accent(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)

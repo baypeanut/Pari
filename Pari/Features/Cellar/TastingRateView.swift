@@ -25,7 +25,6 @@ struct TastingRateView: View {
     var isEditMode: Bool = false
 
     @State private var showCamera = false
-    @State private var cameraUnavailable = false
     @State private var vintageText = ""
 
     private var wineTypeColor: Color {
@@ -85,9 +84,6 @@ struct TastingRateView: View {
                     .padding(.bottom, 40)
             }
         }
-        .background(PariTheme.background(for: colorScheme).ignoresSafeArea())
-        .toolbarBackground(PariTheme.background(for: colorScheme), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
@@ -101,21 +97,31 @@ struct TastingRateView: View {
     // MARK: - Wine Identity
 
     private var wineIdentitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PariEyebrow(isEditMode ? "Your tasting" : "A new memory")
-            Text(wine.producer).font(.subheadline)
-                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-            Text(wine.name).font(PariTheme.editorialFont(size: 30))
-                .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                .fixedSize(horizontal: false, vertical: true)
-            if let region = wine.region {
-                Text(region).font(.subheadline).foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+        VStack(spacing: 6) {
+            Text(wine.producer)
+                .font(colorScheme == .dark
+                      ? PariTheme.uiFont(size: 13, weight: .regular)
+                      : PariTheme.producerSerifFont())
+                .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+
+            Text(wine.name)
+                .font(PariTheme.wineNameFont(for: colorScheme))
+                .foregroundStyle(colorScheme == .dark
+                                 ? PariTheme.wineNameColor(for: colorScheme)
+                                 : WineColorResolver.resolveWineDisplayColor(wine: wine))
+                .multilineTextAlignment(.center)
+
+            if let r = wine.region {
+                Text(r)
+                    .font(PariTheme.detailFont())
+                    .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
             }
-            vintageField.padding(.top, 8)
-            PariRule().padding(.top, 12)
+
+            vintageField
+                .padding(.top, 6)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 24)
+        .multilineTextAlignment(.center)
+        .padding(.top, 32)
         .padding(.horizontal, 24)
     }
 
@@ -158,7 +164,6 @@ struct TastingRateView: View {
 
     private var ratingSection: some View {
         VStack(spacing: 16) {
-            PariEyebrow("Your impression").frame(maxWidth: .infinity, alignment: .leading)
             WineGlassRatingView(
                 rating: $rating,
                 accentColor: ratingAccentColor,
@@ -186,7 +191,7 @@ struct TastingRateView: View {
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 4) {
-                Text("What stayed with you")
+                Text("Tasting Notes")
                     .font(PariTheme.uiFont(size: 15, weight: .medium))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
                 Text("— optional")
@@ -222,10 +227,10 @@ struct TastingRateView: View {
                 .padding(.vertical, 9)
                 .background(isSelected ? wineTypeColor.opacity(0.1) : Color.clear)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(isSelected ? wineTypeColor : PariTheme.divider(for: colorScheme), lineWidth: 1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isSelected ? "\(note), selected" : note)
@@ -236,11 +241,11 @@ struct TastingRateView: View {
 
     private var momentPhotoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Moment photo")
+            HStack(spacing: 4) {
+                Text("Capture Now")
                     .font(PariTheme.uiFont(size: 15, weight: .medium))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                Text("Optional · follows your tasting visibility")
+                Text("— optional · appears in feed")
                     .font(PariTheme.uiFont(size: 13))
                     .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
             }
@@ -263,14 +268,12 @@ struct TastingRateView: View {
             } else {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        showCamera = true
-                    } else { cameraUnavailable = true }
+                    showCamera = true
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 16))
-                        Text("Add a photo")
+                        Text("Capture Now")
                             .font(PariTheme.uiFont(size: 14, weight: .medium))
                     }
                     .foregroundStyle(PariTheme.accent(for: colorScheme))
@@ -288,11 +291,6 @@ struct TastingRateView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 24)
-        .alert("Camera unavailable", isPresented: $cameraUnavailable) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("You can save your tasting without a photo and take one on a device with a camera.")
-        }
         .fullScreenCover(isPresented: $showCamera) {
             CameraCaptureView(
                 onCapture: { data in
@@ -391,7 +389,7 @@ struct TastingRateView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
         }
-        .buttonStyle(CheersButtonStyle(accentColor: PariTheme.actionFill(for: colorScheme)))
+        .buttonStyle(CheersButtonStyle(accentColor: ratingAccentColor))
         .padding(.horizontal, 24)
     }
 }
@@ -405,7 +403,7 @@ private struct CheersButtonStyle: ButtonStyle {
         configuration.label
             .background(accentColor)
             .overlay(configuration.isPressed ? Color.black.opacity(0.08) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 

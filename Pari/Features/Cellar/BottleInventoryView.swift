@@ -16,11 +16,11 @@ struct BottleInventoryView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("\(model.totalBottles) bottles").font(PariTheme.editorialFont(size: 25)).monospacedDigit()
+                                Text("\(model.totalBottles) bottles").font(.title3.weight(.semibold)).monospacedDigit()
                                 Text("At home, ready for another occasion.").font(.subheadline).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button { showAddBottles = true } label: { Label("Add", systemImage: "plus").font(.subheadline.weight(.medium)).frame(minHeight: 44) }
+                            Button { showAddBottles = true } label: { Image(systemName: "plus.circle.fill").font(.title2) }
                                 .accessibilityLabel("Add bottles to your cellar")
                         }
                         if let error = model.errorMessage {
@@ -34,10 +34,12 @@ struct BottleInventoryView: View {
                         }
                         if model.isLoading { ProgressView("Loading bottles…").frame(maxWidth: .infinity) }
                         if !model.isLoading && model.errorMessage == nil && model.bottles.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                PariEmptyNote(title: "Room for a first bottle.", message: "Add what is on your wine rack. Keep the vintage, location and count in one place.")
-                                Button("Add bottles") { showAddBottles = true }
-                                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+                            ContentUnavailableView {
+                                Label("What's on your wine rack?", systemImage: "wineglass")
+                            } description: {
+                                Text("Add the bottles you own. As you open them, keep your count up to date.")
+                            } actions: {
+                                Button("Add your first bottles") { showAddBottles = true }.buttonStyle(.borderedProminent)
                             }
                         }
                         LazyVStack(spacing: 16) {
@@ -66,7 +68,7 @@ struct BottleInventoryView: View {
             } label: {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(bottle.wine.name).font(PariTheme.wineNameFont(for: colorScheme)).foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                        Text(bottle.wine.name).font(.headline).foregroundStyle(.primary)
                         Text(bottle.wine.producer).font(.subheadline).foregroundStyle(.secondary)
                         Text(bottle.vintage.map(String.init) ?? "Vintage unknown").font(.subheadline).foregroundStyle(.secondary)
                         if let location = bottle.location, !location.isEmpty {
@@ -92,7 +94,8 @@ struct BottleInventoryView: View {
                     : "Remove one opened bottle of \(bottle.wine.name)")
             }
         }
-        .padding(.vertical, 18)
-        .overlay(alignment: .bottom) { PariRule() }
+        .padding(16)
+        .background(.background, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(PariTheme.divider(for: colorScheme), lineWidth: 1))
     }
 }

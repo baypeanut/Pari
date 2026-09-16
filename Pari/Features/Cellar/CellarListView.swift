@@ -58,7 +58,7 @@ struct CellarListView: View {
             List {
                 ForEach(currentGroup.tastings) { tasting in
                     tastingRow(tasting)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                        .listRowInsets(EdgeInsets(top: PariTheme.cardSpacingVertical / 2, leading: 16, bottom: PariTheme.cardSpacingVertical / 2, trailing: 16))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                         .listRowSpacing(0)
@@ -92,28 +92,36 @@ struct CellarListView: View {
             .opacity(0)
 
             HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(tasting.wine.producer).font(.caption)
-                        .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                    Text(tasting.wine.name).font(PariTheme.wineNameFont(for: colorScheme))
-                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(tasting.wine.producer)
+                        .font(colorScheme == .dark ? PariTheme.uiFont(size: 12, weight: .regular) : PariTheme.producerSerifFont())
+                        .foregroundStyle(colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.textSecondary(for: colorScheme))
+                    HStack(alignment: .center) {
+                        Text(tasting.wine.name)
+                            .font(PariTheme.wineNameFont(for: colorScheme))
+                            .foregroundStyle(colorScheme == .dark ? PariTheme.wineNameColor(for: colorScheme) : WineColorResolver.resolveWineDisplayColor(wine: tasting.wine))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(String(Int(tasting.rating.rounded())))
+                            .font(colorScheme == .dark ? PariTheme.ratingFont() : PariTheme.uiFont(size: 20, weight: .medium))
+                            .foregroundStyle(PariTheme.ratingColor(for: colorScheme))
+                    }
                     if let comment = tasting.comment, !comment.isEmpty {
-                        Text(comment).font(.subheadline).lineLimit(2)
-                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                        Text(comment)
+                            .font(PariTheme.uiFont(size: 12).italic())
+                            .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+                            .lineLimit(2)
                     }
-                    HStack(spacing: 8) {
-                        if let vintage = tasting.displayVintage { Text("Vintage \(String(vintage))") }
-                        Text(PariTheme.compactTimestamp(tasting.createdAt))
-                    }
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    Text(PariTheme.compactTimestamp(tasting.createdAt))
+                        .font(PariTheme.uiFont(size: 12))
+                        .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                PariScore(value: tasting.rating)
             }
-            .padding(.vertical, 22)
-            .overlay(alignment: .bottom) { PariRule() }
+            .padding(.vertical, PariTheme.cardPaddingVertical)
+            .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+            .background(
+                RoundedRectangle(cornerRadius: PariTheme.cardCornerRadius)
+                    .fill(PariTheme.surface(for: colorScheme))
+            )
         }
     }
 

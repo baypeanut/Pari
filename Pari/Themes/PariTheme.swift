@@ -6,16 +6,16 @@ enum PariTheme {
     // Dark mode is intentional, layered — not a dimmed overlay.
 
     // Light mode base — ivory palette
-    private static let lightBackgroundPrimary = Color(red: 0xF6 / 255, green: 0xF3 / 255, blue: 0xEC / 255)  // #F6F3EC paper
+    private static let lightBackgroundPrimary = Color(red: 0xFA / 255, green: 0xF8 / 255, blue: 0xF5 / 255)  // #FAF8F5 ivory
     private static let lightBackgroundSecondary = Color(red: 0xF0 / 255, green: 0xEB / 255, blue: 0xE3 / 255) // #F0EBE3 warm cream
     private static let lightSurface = Color.white                          // white cards pop on ivory bg
     private static let lightSurfaceElevated = Color.white
     private static let lightSurfaceSelected = Color(red: 0xF5 / 255, green: 0xF0 / 255, blue: 0xE8 / 255)
     private static let lightBorderSubtle = Color(red: 0xDC / 255, green: 0xD4 / 255, blue: 0xC8 / 255)        // warm border
     private static let lightDivider = Color(red: 0xE4 / 255, green: 0xDD / 255, blue: 0xD4 / 255)             // warm divider
-    private static let lightTextPrimary = Color(red: 0x27 / 255, green: 0x29 / 255, blue: 0x24 / 255)
-    private static let lightTextSecondary = Color(red: 0x58 / 255, green: 0x59 / 255, blue: 0x50 / 255)
-    private static let lightTextTertiary = Color(red: 0x70 / 255, green: 0x70 / 255, blue: 0x65 / 255)
+    private static let lightTextPrimary = Color(red: 0x0B / 255, green: 0x0B / 255, blue: 0x0C / 255)
+    private static let lightTextSecondary = Color(red: 0x3A / 255, green: 0x3A / 255, blue: 0x45 / 255)
+    private static let lightTextTertiary = Color(red: 0x6B / 255, green: 0x6B / 255, blue: 0x75 / 255)
     private static let lightTextDisabled = Color(white: 0.6)
     private static let lightAccentWine = Color(red: 0x4A / 255, green: 0x0E / 255, blue: 0x0E / 255)
     private static let lightAccentWineHover = Color(red: 0x5A / 255, green: 0x12 / 255, blue: 0x12 / 255)
@@ -24,25 +24,25 @@ enum PariTheme {
     // Dark mode tokens — warm charcoal editorial palette
     // 4-level surface hierarchy: canvas → fields → cards → modals/sheets
     // Warm brown undertone throughout (not blue-gray).
-    // Background: #120F0E | Card: #221E1B | Elevated: #2A2521 | Divider: #403C35
-    // Text accent: #D38D94 | Filled actions: #B84A58 | Wine names use primary ink
+    // Background: #120F0E | Card: #221E1B | Elevated: #2A2521 | Divider: #2D2823
+    // Accent: #B84A58 (ruby — readable on dark, retains wine DNA) | Wine names: #EDE4D5 (parchment)
     private static let darkBackgroundPrimary   = Color(red: 0x12/255, green: 0x0F/255, blue: 0x0E/255) // #120F0E — warm near-black canvas
     private static let darkBackgroundSecondary = Color(red: 0x1C/255, green: 0x19/255, blue: 0x17/255) // #1C1917 — input fields, chip backgrounds
     private static let darkCardSurface         = Color(red: 0x22/255, green: 0x1E/255, blue: 0x1B/255) // #221E1B — feed cards, list rows
     private static let darkSurface             = Color(red: 0x22/255, green: 0x1E/255, blue: 0x1B/255) // alias: card level
     private static let darkSurfaceElevated     = Color(red: 0x2A/255, green: 0x25/255, blue: 0x21/255) // #2A2521 — modals, sheets, tab bar
     private static let darkSurfaceSelected     = Color(red: 0x30/255, green: 0x2A/255, blue: 0x25/255) // #302A25 — active chip, selected row
-    private static let darkDivider             = Color(red: 0x40/255, green: 0x3C/255, blue: 0x35/255) // #403C35 — list separators
+    private static let darkDivider             = Color(red: 0x2D/255, green: 0x28/255, blue: 0x23/255) // #2D2823 — list separators, card borders
     private static let darkBorderInput         = Color(red: 0x3C/255, green: 0x35/255, blue: 0x2E/255) // #3C352E — form input strokes
     private static let darkTextPrimary         = Color(red: 0xF2/255, green: 0xEB/255, blue: 0xE2/255) // #F2EBE2 — warm white (not pure white)
-    private static let darkTextSecondary       = Color(red: 0xBA/255, green: 0xB1/255, blue: 0xA5/255) // #BAB1A5 — secondary ink
-    private static let darkTextTertiary        = Color(red: 0xA4/255, green: 0x99/255, blue: 0x8D/255) // #A4998D — readable annotations
+    private static let darkTextSecondary       = Color(red: 0x9E/255, green: 0x94/255, blue: 0x8C/255) // #9E948C — warm mid gray
+    private static let darkTextTertiary        = Color(red: 0x6A/255, green: 0x61/255, blue: 0x5A/255) // #6A615A — warm dim gray
     private static let darkTextDisabled        = Color(red: 0x45/255, green: 0x3F/255, blue: 0x3A/255) // #453F3A — disabled
-    private static let darkAccentWine          = Color(red: 0xD3/255, green: 0x8D/255, blue: 0x94/255) // #D38D94 — readable text accent
+    private static let darkAccentWine          = Color(red: 0xB8/255, green: 0x4A/255, blue: 0x58/255) // #B84A58 — ruby (readable CTA on dark bg)
     private static let darkAccentWineSecondary = Color(red: 0xED/255, green: 0xE4/255, blue: 0xD5/255) // #EDE4D5 — warm parchment for wine names
     private static let darkAccentWineMuted     = Color(red: 0x8A/255, green: 0x30/255, blue: 0x3E/255) // #8A303E — muted ruby for fills/tints
     private static let darkDangerMuted         = Color(red: 0xA2/255, green: 0x38/255, blue: 0x42/255) // #A23842 — danger text, readable in dark
-    private static let darkTabBarInactive      = Color(red: 0xA4/255, green: 0x99/255, blue: 0x8D/255) // #A4998D — inactive tab icons
+    private static let darkTabBarInactive      = Color(red: 0x5A/255, green: 0x53/255, blue: 0x4E/255) // #5A534E — warm inactive tab icons
 
     // Emerald accent — Taste Twin badge, Reserve List bookmark.
     // Gold tones are already semantically occupied by white/sparkling wine category colors.
@@ -118,11 +118,6 @@ enum PariTheme {
         scheme == .dark ? darkAccentWine : lightAccentWine
     }
 
-    /// Filled actions retain white-label contrast independently of text accents.
-    static func actionFill(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(red: 0xB8/255, green: 0x4A/255, blue: 0x58/255) : lightAccentWine
-    }
-
     static func accentWineHover(for scheme: ColorScheme) -> Color {
         scheme == .dark ? darkAccentWineMuted : lightAccentWineHover
     }
@@ -136,9 +131,9 @@ enum PariTheme {
         scheme == .dark ? darkAccentWineMuted : lightAccentWine
     }
 
-    /// Wine names use the same ink in both appearances; category color is a small annotation.
+    /// Wine names only (dark mode). Returns #C9A24D. Light mode uses generic accent for wine when not using WineColorResolver.
     static func wineNameColor(for scheme: ColorScheme) -> Color {
-        textPrimary(for: scheme)
+        scheme == .dark ? darkAccentWineSecondary : lightAccentWine
     }
 
     static func ratingColor(for scheme: ColorScheme) -> Color {
@@ -165,9 +160,9 @@ enum PariTheme {
         accentEmerald(for: scheme)
     }
 
-    /// Entries sit directly on paper, without decorative elevation.
+    /// Dark: no glow. Light: subtle shadow.
     static func shadowColor(for scheme: ColorScheme) -> Color {
-        .clear
+        scheme == .dark ? .clear : Color.black.opacity(0.04)
     }
 
     // MARK: - Adaptive helpers (map to semantic tokens)
@@ -243,12 +238,12 @@ enum PariTheme {
     }
 
     static func wineNameFont(weight: Font.Weight = .regular) -> Font {
-        .custom("Georgia", size: 22, relativeTo: .title2).weight(weight)
+        .system(.title2, design: .serif, weight: weight)
     }
 
-    /// One typographic voice in both appearances, scaled with Dynamic Type.
+    /// Wine name font. Dark: medium weight. Light: regular.
     static func wineNameFont(for scheme: ColorScheme) -> Font {
-        .custom("Georgia", size: 22, relativeTo: .title2)
+        .system(.title2, design: .serif, weight: scheme == .dark ? .medium : .regular)
     }
 
     static func detailFont() -> Font {
@@ -256,7 +251,7 @@ enum PariTheme {
     }
 
     static func titleFont() -> Font {
-        .custom("Georgia", size: 32, relativeTo: .largeTitle)
+        .system(.title, design: .serif, weight: .regular)
     }
 
     /// Rating font. Slightly smaller than wine name, medium weight.
@@ -270,10 +265,6 @@ enum PariTheme {
 
     static func producerSerifFont() -> Font {
         .system(.subheadline, design: .serif, weight: .regular)
-    }
-
-    static func editorialFont(size: CGFloat = 32) -> Font {
-        .custom("Georgia", size: size, relativeTo: .title)
     }
 
     // MARK: - Timestamps
@@ -314,7 +305,7 @@ enum PariTheme {
     // MARK: - Card System (canonical layout)
 
     /// Card corner radius. Subtle, consistent.
-    static let cardCornerRadius: CGFloat = 4
+    static let cardCornerRadius: CGFloat = 10
 
     /// Card horizontal padding.
     static let cardPaddingHorizontal: CGFloat = 18

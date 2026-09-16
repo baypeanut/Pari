@@ -141,7 +141,7 @@ struct AddWineSheet: View {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 16))
-                    .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                    .foregroundStyle(PariTheme.secondaryText)
                 TextField("Search wines…", text: $viewModel.query)
                     .font(PariTheme.uiFont(size: 16))
                     .textFieldStyle(.plain)
@@ -150,18 +150,19 @@ struct AddWineSheet: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showLabelScan = true
                 } label: {
-                    Image(systemName: "viewfinder")
-                        .font(.system(size: 20))
+                    Text("V")
+                        .font(.system(size: 18, weight: .light, design: .serif))
                         .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                        .frame(width: 44, height: 44)
+                        .padding(6)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Scan a wine label")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(PariTheme.backgroundSecondary(for: colorScheme))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .background(colorScheme == .dark
+                ? PariTheme.surface(for: colorScheme)
+                : Color(white: 0.95))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
             if viewModel.isLoading {
@@ -256,14 +257,14 @@ struct AddWineSheet: View {
             }
         } label: {
             HStack(alignment: .center, spacing: 16) {
-                if wine.labelImageURL != nil { thumbnail(wine.labelImageURL) }
+                thumbnail(wine.labelImageURL)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(wine.producer)
                         .font(colorScheme == .dark ? PariTheme.uiFont(size: 13, weight: .regular) : PariTheme.producerSerifFont())
                         .foregroundStyle(colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.secondaryText(for: colorScheme))
                     Text(wine.name)
                         .font(PariTheme.wineNameFont(for: colorScheme))
-                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                        .foregroundStyle(colorScheme == .dark ? PariTheme.wineNameColor(for: colorScheme) : WineColorResolver.resolveWineDisplayColor(wine: wine))
                         .multilineTextAlignment(.leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -35,7 +35,6 @@ final class ForYouViewModel {
 
 struct ForYouView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel = ForYouViewModel()
     @State private var showListScan = false
     @State private var showTable = false
@@ -77,31 +76,30 @@ struct ForYouView: View {
     /// versions of that are a restaurant list and a table of people who do not
     /// agree, so both live here.
     private var listScanButton: some View {
-        HStack(alignment: .top, spacing: 20) {
-            serviceLink("Wine list", detail: "Read the menu") { showListScan = true }
-            Rectangle().fill(PariTheme.divider(for: colorScheme)).frame(width: 1)
-            serviceLink("The table", detail: "Choose together") { showTable = true }
+        HStack(spacing: 10) {
+            actionChip(icon: "doc.text.viewfinder", title: "Wine list") { showListScan = true }
+            actionChip(icon: "person.2.wave.2", title: "The table") { showTable = true }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.vertical, 18)
-        .overlay(alignment: .top) { PariRule() }
-        .overlay(alignment: .bottom) { PariRule() }
         .padding(.horizontal, 24)
     }
 
-    private func serviceLink(_ title: String, detail: String, action: @escaping () -> Void) -> some View {
+    private func actionChip(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 7) {
-                HStack {
-                    Text(title).font(.subheadline.weight(.medium))
-                    Spacer(minLength: 4)
-                    Image(systemName: "arrow.up.right").font(.system(size: 12))
-                }
-                .foregroundStyle(PariTheme.accent(for: colorScheme))
-                Text(detail).font(.caption).foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                Text(title)
+                    .font(PariTheme.uiFont(size: 14, weight: .medium))
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(Rectangle())
+            .foregroundStyle(PariTheme.accent(for: colorScheme))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(PariTheme.backgroundSecondary(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(PariTheme.divider(for: colorScheme), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
     }
@@ -134,11 +132,11 @@ struct ForYouView: View {
                 if !viewModel.recommendations.isEmpty {
                     sectionHeading("Matched to your palate")
                 }
-                ForEach(Array(viewModel.recommendations.enumerated()), id: \.element.id) { index, rec in
+                ForEach(viewModel.recommendations) { rec in
                     NavigationLink {
                         WineCardView(wine: rec.wine, activityId: nil, currentUserId: currentUserId)
                     } label: {
-                        row(rec, position: index + 1)
+                        row(rec)
                     }
                     .buttonStyle(.plain)
                     Divider()
@@ -151,18 +149,18 @@ struct ForYouView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("For your next bottle.")
-                .font(PariTheme.editorialFont(size: 34))
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Picked for you")
+                .font(.system(.title3, design: .serif, weight: .regular))
                 .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                .fixedSize(horizontal: false, vertical: true)
-            Text("From the wines you remember.")
-                .font(.subheadline)
-                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            Text("From what you've rated and who drinks like you.")
+                .font(PariTheme.uiFont(size: 13))
+                .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 24)
-        .padding(.vertical, 28)
+        .padding(.top, 8)
+        .padding(.bottom, 16)
     }
 
     private func sectionHeading(_ text: String) -> some View {
@@ -182,13 +180,13 @@ struct ForYouView: View {
             wineThumbnail(bottle.wine)
             VStack(alignment: .leading, spacing: 3) {
                 Text(bottle.wine.producer)
-                    .font(.caption)
+                    .font(PariTheme.uiFont(size: 12))
                     .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
                     .lineLimit(1)
                 Text(bottle.vintage.map { "\($0) \(bottle.wine.name)" } ?? bottle.wine.name)
                     .font(PariTheme.wineNameFont(for: colorScheme))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(2)
                 HStack(spacing: 6) {
                     Text(bottle.urgency.label)
                         .font(PariTheme.uiFont(size: 11, weight: .medium))
@@ -216,12 +214,12 @@ struct ForYouView: View {
                 Text(collection.title)
                     .font(PariTheme.wineNameFont(for: colorScheme))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(2)
                 if let subtitle = collection.subtitle {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(PariTheme.uiFont(size: 12))
                         .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                        .lineLimit(2)
                 }
                 // The signature is the whole point of this section.
                 Text(collection.attribution)
@@ -239,39 +237,35 @@ struct ForYouView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func row(_ rec: WineRecommendation, position: Int) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Text(String(format: "%02d", position))
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                .frame(width: 25, alignment: .leading)
-                .padding(.top, 4)
+    private func row(_ rec: WineRecommendation) -> some View {
+        HStack(spacing: 14) {
+            wineThumbnail(rec.wine)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(rec.wine.producer)
-                    .font(.caption)
+                    .font(PariTheme.uiFont(size: 12))
                     .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
                     .lineLimit(1)
 
                 Text(rec.wine.name)
                     .font(PariTheme.wineNameFont(for: colorScheme))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 if let region = rec.wine.region {
                     Text(region)
-                        .font(.caption)
+                        .font(PariTheme.uiFont(size: 12))
                         .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
                         .lineLimit(1)
                 }
 
                 if let explanation = rec.explanation {
                     Text(explanation)
-                        .font(.caption)
+                        .font(PariTheme.uiFont(size: 12))
                         .foregroundStyle(PariTheme.accent(for: colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 5)
+                        .lineLimit(1)
+                        .padding(.top, 2)
                 }
             }
 
@@ -321,12 +315,21 @@ struct ForYouView: View {
     }
 
     private var emptyState: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                PariEmptyNote(title: "A palate takes shape.", message: "Record a few wines to start finding bottles through your own taste.")
-                    .padding(.horizontal, 24)
-                listScanButton
-            }
+        VStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 36, weight: .ultraLight))
+                .foregroundStyle(PariTheme.accentWine(for: colorScheme).opacity(0.25))
+            Text("Nothing to suggest yet.")
+                .font(.system(.title3, design: .serif, weight: .regular))
+                .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+            Text("Rate a few wines and this fills up.")
+                .font(PariTheme.uiFont(size: 14))
+                .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+                .multilineTextAlignment(.center)
+            listScanButton
+                .padding(.top, 12)
         }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

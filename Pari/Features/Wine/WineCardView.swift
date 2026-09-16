@@ -125,42 +125,61 @@ struct WineCardView: View {
     // MARK: - Wine Header
     
     private var wineHeader: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            PariEyebrow("The bottle")
-            HStack(alignment: .top, spacing: 20) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(wine.producer).font(.subheadline)
-                        .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                    Text(wine.name).font(PariTheme.editorialFont(size: 32))
-                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if let value = wine.labelImageURL, let url = URL(string: value) {
-                    AsyncImage(url: url) { phase in
-                        if case .success(let image) = phase {
-                            image.resizable().scaledToFit().frame(width: 76, height: 112)
-                        }
+        VStack(spacing: 16) {
+            // Wine label image or icon
+            if let urlString = wine.labelImageURL, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img.resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: 200, maxHeight: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    default:
+                        wineIconPlaceholder
                     }
                 }
+            } else {
+                wineIconPlaceholder
             }
-            VStack(alignment: .leading, spacing: 7) {
-                if let region = wine.region, !region.isEmpty { Text(region) }
-                if let variety = wine.variety, !variety.isEmpty { Text(variety) }
-                HStack(spacing: 8) {
-                    if let category = wine.category {
-                        Circle().fill(wineColor).frame(width: 5, height: 5).accessibilityHidden(true)
-                        Text(category)
+            
+            // Wine info
+            VStack(spacing: 8) {
+                Text(wine.producer)
+                    .font(PariTheme.producerSerifFont())
+                    .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                    .multilineTextAlignment(.center)
+                
+                Text(wine.name)
+                    .font(PariTheme.wineNameFont(for: colorScheme))
+                    .foregroundStyle(wineColor)
+                    .multilineTextAlignment(.center)
+                
+                HStack(spacing: 16) {
+                    if let vintage = wine.vintage {
+                        Text(String(vintage))
+                            .font(PariTheme.detailFont())
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
                     }
-                    if let vintage = wine.vintage { Text("Vintage \(String(vintage))") }
+                    if let region = wine.region {
+                        Text(region)
+                            .font(PariTheme.detailFont())
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                    }
+                    if let variety = wine.variety {
+                        Text(variety)
+                            .font(PariTheme.detailFont())
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                    }
+                }
+                // Only show wishlist toggle if user hasn't tasted this wine
+                if currentUserId != nil && userTasting == nil {
+                    wishlistToggle
                 }
             }
-            .font(.subheadline)
-            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-            if currentUserId != nil && userTasting == nil { wishlistToggle }
+            .padding(.horizontal, 24)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(24)
+        .padding(.vertical, 24)
     }
 
     private var wishlistToggle: some View {
@@ -196,71 +215,151 @@ struct WineCardView: View {
         }
     }
     
+    private var wineIconPlaceholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(white: 0.97))
+                .frame(width: 120, height: 120)
+            Image(systemName: "wineglass.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(wineColor.opacity(0.5))
+        }
+    }
+    
     // MARK: - Ratings Section
     
     private var ratingsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            PariRule()
-            HStack(alignment: .center, spacing: 20) {
-                VStack(alignment: .leading, spacing: 7) {
-                    PariEyebrow("Your rating")
-                    if let tasting = userTasting {
-                        Text(tasting.createdAt.formatted(date: .abbreviated, time: .omitted))
-                            .font(.caption).foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+        VStack(alignment: .center, spacing: 8) {
+            sectionDivider
+            
+            VStack(spacing: 16) {
+                HStack {
+                    Spacer()
+                    Text("Ratings")
+                        .font(PariTheme.uiFont(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if userTasting != nil {
+                        Button {
+                            prepareEditMode()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 13))
+                                Text("Edit")
+                                    .font(PariTheme.uiFont(size: 14))
+                            }
+                            .foregroundStyle(PariTheme.accent(for: colorScheme))
+                        }
+                        .buttonStyle(.plain)
                     } else {
-                        Text("Not tasted yet").font(.subheadline)
-                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                        Spacer().frame(width: 60)
                     }
                 }
-                Spacer()
-                if let tasting = userTasting {
-                    PariScore(value: tasting.rating)
-                    Button("Edit") { prepareEditMode() }.font(.subheadline)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .foregroundStyle(PariTheme.accent(for: colorScheme))
+                .frame(maxWidth: .infinity)
+                
+                HStack(spacing: 0) {
+                    ratingColumn(label: "You", rating: userTasting?.rating)
+                    ratingColumn(
+                        label: "Twins",
+                        rating: twinRating?.twinWeightedAvg,
+                        subtitle: twinRating.map { $0.twinCount > 0 ? "\($0.twinCount)" : nil } ?? nil
+                    )
+                    ratingColumn(
+                        label: "Global",
+                        rating: twinRating?.communityAvg,
+                        subtitle: twinRating.map { $0.communityCount > 0 ? "\($0.communityCount)" : nil } ?? nil
+                    )
                 }
             }
-            VStack(alignment: .leading, spacing: 10) {
-                ratingEvidence("Taste twins", rating: twinRating?.twinWeightedAvg, count: twinRating?.twinCount ?? 0)
-                ratingEvidence("Community", rating: twinRating?.communityAvg, count: twinRating?.communityCount ?? 0)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+        }
+    }
+    
+    private func ratingColumn(label: String, rating: Double?, subtitle: String? = nil) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(PariTheme.uiFont(size: 15, weight: .medium))
+                .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+
+            if let rating {
+                Text(String(format: "%.1f", rating))
+                    .font(colorScheme == .dark ? PariTheme.ratingFont() : PariTheme.uiFont(size: 28, weight: .semibold))
+                    .foregroundStyle(PariTheme.ratingColor(for: colorScheme))
+            } else {
+                Text("\u{2014}")
+                    .font(PariTheme.uiFont(size: 28, weight: .semibold))
+                    .foregroundStyle(PariTheme.border(for: colorScheme))
+            }
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(PariTheme.uiFont(size: 11))
+                    .foregroundStyle(PariTheme.tertiaryText(for: colorScheme))
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity)
     }
-
-    private func ratingEvidence(_ title: String, rating: Double?, count: Int) -> some View {
-        PariRatingEvidence(title: title, rating: rating, count: count)
-    }
-
-    // MARK: - Your tasting
-
+    
+    // MARK: - User Notes Section
+    
     private func userNotesSection(_ tasting: Tasting) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            PariRule()
-            if let notes = tasting.noteTags, !notes.isEmpty {
-                PariEyebrow("Tasting notes")
-                Text(notes.joined(separator: " · ")).font(.subheadline)
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
+            sectionDivider
+            
+            VStack(alignment: .leading, spacing: 12) {
+                // Tasting notes
+                if let notes = tasting.noteTags, !notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notes")
+                            .font(PariTheme.uiFont(size: 14, weight: .medium))
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                        
+                        FlowLayout(spacing: 8) {
+                            ForEach(notes, id: \.self) { note in
+                                noteChip(note)
+                            }
+                        }
+                    }
+                }
+                
+                // Comment
+                if let comment = tasting.comment, !comment.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your thoughts")
+                            .font(PariTheme.uiFont(size: 14, weight: .medium))
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                        
+                        Text(comment)
+                            .font(PariTheme.uiFont(size: 15).italic())
+                            .foregroundStyle(.primary)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(white: 0.97))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
             }
-            if let comment = tasting.comment, !comment.isEmpty {
-                Text(comment).font(PariTheme.editorialFont(size: 22))
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .lineSpacing(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 24)
     }
-
+    
     private func noteChip(_ note: String) -> some View {
-        Text(note).font(.subheadline)
-            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-            .padding(.trailing, 8)
+        Text(note)
+            .font(PariTheme.uiFont(size: 14))
+            .foregroundStyle(wineColor)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(wineColor.opacity(0.1))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(wineColor, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-
+    
     // MARK: - Activity Comments Section
     
     private var activityCommentsSection: some View {
@@ -332,7 +431,7 @@ struct WineCardView: View {
     
     private func avatarPlaceholder(_ name: String) -> some View {
         Circle()
-            .fill(PariTheme.placeholderBackground(for: colorScheme))
+            .fill(Color(white: 0.94))
             .overlay(
                 Text(String(name.prefix(1)).uppercased())
                     .font(PariTheme.uiFont(size: 13, weight: .medium))

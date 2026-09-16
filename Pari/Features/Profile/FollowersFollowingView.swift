@@ -268,7 +268,7 @@ private struct FollowListRowView: View {
                 .foregroundStyle(isFollowing ? PariTheme.secondaryText(for: colorScheme) : .white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(isFollowing ? PariTheme.placeholderBackground(for: colorScheme) : PariTheme.actionFill(for: colorScheme))
+                .background(isFollowing ? PariTheme.placeholderBackground(for: colorScheme) : PariTheme.accent(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)

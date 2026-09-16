@@ -85,32 +85,29 @@ struct ProfileView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .navigationTitle("pari")
+            .navigationTitle(viewModel?.profile?.displayName ?? "Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) { Text("pari").font(PariTheme.editorialFont(size: 23)) }
                 ToolbarItem(placement: .navigationBarLeading) {
                     if let vm = viewModel, !vm.allTastings.isEmpty {
                         Button {
                             showTasteDNA = true
                         } label: {
-                            Image(systemName: "square.and.arrow.up")
+                            Image(systemName: "sparkles")
                                 .font(.system(size: 16))
                                 .foregroundStyle(PariTheme.accentWine(for: colorScheme))
                         }
-                        .accessibilityLabel("Share your taste profile")
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showSettings = true
                     } label: {
-                        Image(systemName: "slider.horizontal.3")
+                        Image(systemName: "line.3.horizontal")
                             .font(.system(size: 18))
                             .foregroundStyle(PariTheme.accent(for: colorScheme))
                     }
-                    .accessibilityLabel("Profile settings")
                 }
             }
             .sheet(isPresented: $showTasteDNA) {
@@ -275,33 +272,40 @@ struct ProfileView: View {
 private struct ProfileSkeletonView: View {
     @Environment(\.colorScheme) private var colorScheme
     var body: some View {
+        let placeholder = PariTheme.placeholderBackground(for: colorScheme)
+        let card = PariTheme.elevatedSurface(for: colorScheme)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        PariEyebrow("Personal wine journal")
-                        Text("Your wine journal").font(PariTheme.titleFont())
-                        Text("@username").font(.subheadline)
+                VStack(spacing: 12) {
+                    Circle()
+                        .fill(placeholder)
+                        .frame(width: 88, height: 88)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(placeholder)
+                        .frame(width: 100, height: 14)
+                    HStack(spacing: 16) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            VStack(spacing: 4) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(placeholder)
+                                    .frame(width: 36, height: 14)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(card)
+                                    .frame(width: 50, height: 12)
+                            }
+                        }
                     }
-                    Spacer()
-                    Circle().fill(PariTheme.placeholderBackground(for: colorScheme)).frame(width: 56, height: 56)
                 }
-                PariRule()
-                Text("Tastings     Followers     Following").font(.subheadline)
-                PariRule()
-                ForEach(0..<3) { _ in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("The producer").font(.caption)
-                        Text("A wine to remember").font(PariTheme.wineNameFont())
-                        Text("A note about the occasion").font(.subheadline)
-                        PariRule()
-                    }
-                }
+                .frame(maxWidth: .infinity)
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(card)
+                    .frame(height: 100)
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(card)
+                    .frame(height: 200)
             }
-            .redacted(reason: .placeholder)
-            .padding(24)
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Loading your journal")
     }
 }

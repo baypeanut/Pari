@@ -18,7 +18,6 @@ private struct WineNavTarget: Identifiable, Hashable {
 
 struct FeedItemView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let item: FeedItem
     let parts: (before: String, name: String, after: String)
     let onCheers: () -> Void
@@ -74,7 +73,19 @@ struct FeedItemView: View {
                 legacyContent
             }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, PariTheme.cardPaddingVertical)
+        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+        .background(
+            RoundedRectangle(cornerRadius: PariTheme.cardCornerRadius)
+                .fill(PariTheme.surface(for: colorScheme))
+        )
+        .clipShape(RoundedRectangle(cornerRadius: PariTheme.cardCornerRadius))
+        .shadow(
+            color: PariTheme.shadowColor(for: colorScheme),
+            radius: colorScheme == .dark ? 0 : 6,
+            x: 0,
+            y: colorScheme == .dark ? 0 : 2
+        )
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if canDelete, let onDelete = onDelete {
                 Button(role: .destructive) {
@@ -179,7 +190,7 @@ struct FeedItemView: View {
 
     private var twinBadge: some View {
         HStack(spacing: 3) {
-            Image(systemName: "person.2")
+            Image(systemName: "sparkles")
                 .font(.system(size: 9))
             Text("Taste Twin")
                 .font(PariTheme.uiFont(size: 11, weight: .medium))
@@ -226,10 +237,12 @@ struct FeedItemView: View {
             // Row 1: Label image (portrait) + wine info side by side; optional moment photo top-right
             HStack(alignment: .top, spacing: 12) {
                 // Label image — portrait, prominent
-                if item.wineLabelURL != nil {
-                    wineLabelPortrait(labelURL: item.wineLabelURL, category: item.wineCategory,
-                                      wineName: item.wineName, rating: item.tastingRating)
-                }
+                wineLabelPortrait(
+                    labelURL: item.wineLabelURL,
+                    category: item.wineCategory,
+                    wineName: item.wineName,
+                    rating: item.tastingRating
+                )
 
                 // Wine info + rating
                 VStack(alignment: .leading, spacing: 3) {
@@ -240,9 +253,11 @@ struct FeedItemView: View {
 
                     Text(PariTheme.displayWineName(item.wineName))
                         .font(PariTheme.wineNameFont(for: colorScheme))
-                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(colorScheme == .dark
+                                         ? PariTheme.wineNameColor(for: colorScheme)
+                                         : WineColorResolver.resolveWineDisplayColor(category: item.wineCategory, wineName: item.wineName, variety: item.wineVariety, debugPostId: item.id))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.88)
 
                     if let vintage = item.wineVintage {
                         Text(String(vintage))
@@ -276,8 +291,10 @@ struct FeedItemView: View {
                 // Moment photo (wine night) — small circle top-right of card row
                 if let reference = item.momentImageURL {
                     MomentPhoto(reference: reference)
-                    .frame(width: 76, height: 94)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .frame(width: 44, height: 44)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(PariTheme.divider(for: colorScheme), lineWidth: 1))
+                    .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.06), radius: 3, x: 0, y: 1)
                 }
             }
             .contentShape(Rectangle())
@@ -290,15 +307,15 @@ struct FeedItemView: View {
                 Text(comment)
                     .font(PariTheme.uiFont(size: 13).italic())
                     .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(2)
                     .truncationMode(.tail)
-                    .padding(.leading, item.wineLabelURL == nil ? 0 : 70) // align with wine info column
+                    .padding(.leading, 58 + 12) // align with wine info column
             }
 
             Text(PariTheme.compactTimestamp(item.createdAt))
                 .font(PariTheme.uiFont(size: 12))
                 .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                .padding(.leading, item.wineLabelURL == nil ? 0 : 70)
+                .padding(.leading, 58 + 12)
         }
     }
     
@@ -339,7 +356,7 @@ struct FeedItemView: View {
         }
         .frame(width: w, height: h)
         .clipShape(RoundedRectangle(cornerRadius: r))
-
+        .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 
     /// Placeholder icon by mood: 7+ full glass, 4–6 neutral, <4 dim.
@@ -370,8 +387,6 @@ struct FeedItemView: View {
                     Image(systemName: item.hasCheered ? "wineglass.fill" : "wineglass")
                         .font(.system(size: 13))
                         .foregroundStyle(item.hasCheered ? PariTheme.accent(for: colorScheme) : PariTheme.textTertiary(for: colorScheme))
-                    Text("Cheers").font(.caption)
-                        .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
                     if item.cheersCount > 0 {
                         Text("\(item.cheersCount)")
                             .font(PariTheme.uiFont(size: 12))
@@ -380,7 +395,7 @@ struct FeedItemView: View {
                 }
                 .contentShape(Rectangle())
                 .padding(.horizontal, 10)
-                .frame(minHeight: 44)
+                .padding(.vertical, 6)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Cheers\(item.cheersCount > 0 ? ", \(item.cheersCount)" : "")")

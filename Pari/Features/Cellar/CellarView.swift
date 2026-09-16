@@ -21,15 +21,12 @@ struct CellarView: View {
 
             VStack(spacing: 0) {
                 header
-                VStack(spacing: 0) {
-                    PariTabStrip {
-                        ForEach(Section.allCases, id: \.self) { item in
-                            PariSectionTab(title: item.rawValue, selected: section == item) { section = item }
-                        }
-                    }
-                    PariRule()
+                Picker("Cellar section", selection: $section) {
+                    ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
+                .pickerStyle(.segmented)
                 .padding(.horizontal, 24)
+                .padding(.vertical, 8)
                 if section == .bottles { BottleInventoryView() } else { content }
             }
         }
@@ -65,32 +62,38 @@ struct CellarView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                PariEyebrow("Collected & remembered")
-                Text("Cellar").font(PariTheme.titleFont())
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-            }
+        HStack(alignment: .center) {
+            Text("My Cellar")
+                .font(PariTheme.titleFont())
+                .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
             Spacer()
-            if section == .tastings, !viewModel.needsAuth, viewModel.currentUserId != nil {
-                if !viewModel.tastings.isEmpty {
-                    Button { showFilters = true } label: {
-                        Image(systemName: "line.3.horizontal.decrease").font(.system(size: 18))
-                            .frame(width: 44, height: 44)
+            if section == .tastings, !viewModel.needsAuth, let _ = viewModel.currentUserId {
+                HStack(spacing: 12) {
+                    if !viewModel.tastings.isEmpty {
+                        Button {
+                            showFilters = true
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .font(.system(size: 22))
+                                .foregroundStyle(PariTheme.accent(for: colorScheme))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .accessibilityLabel("Filter and sort tastings")
+                    Button {
+                        showAddWine = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 22))
+                            .foregroundStyle(PariTheme.accent(for: colorScheme))
+                    }
+                    .buttonStyle(.plain)
                 }
-                Button { showAddWine = true } label: {
-                    Label("Add", systemImage: "plus").font(.subheadline.weight(.medium)).frame(minHeight: 44)
-                }
-                .accessibilityLabel("Add a tasting")
             }
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(PariTheme.accent(for: colorScheme))
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
         .padding(.top, 24)
-        .padding(.bottom, 20)
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder
@@ -119,17 +122,38 @@ struct CellarView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            PariEmptyNote(title: "The first page is yours.", message: "A bottle, an occasion, a few words. Keep a wine you want to remember.")
-            Button { showAddWine = true } label: {
-                Label("Record a tasting", systemImage: "plus")
-                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
+        VStack(spacing: 20) {
+            Image(systemName: "wineglass")
+                .font(.system(size: 44, weight: .ultraLight))
+                .foregroundStyle(PariTheme.accentWine(for: colorScheme).opacity(0.25))
+                .padding(.top, 48)
+            VStack(spacing: 8) {
+                Text("Your first tasting starts here.")
+                    .font(.system(.title3, design: .serif, weight: .regular))
+                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.center)
+                Text("Keep the wines and moments you want to remember.")
+                    .font(PariTheme.uiFont(size: 15))
+                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
-            .foregroundStyle(PariTheme.accent(for: colorScheme))
-            Spacer()
+            Button {
+                showAddWine = true
+            } label: {
+                Text("Add a wine you've tasted")
+                    .font(PariTheme.uiFont(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 13)
+                    .background(PariTheme.accent(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
         }
-        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var listContent: some View {
