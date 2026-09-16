@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AddBottlesSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var results: [Wine] = []
@@ -21,6 +22,7 @@ struct AddBottlesSheet: View {
             Group {
                 if let wine = selectedWine { details(wine) } else { search }
             }
+            .background(PariTheme.background(for: colorScheme))
             .navigationTitle("Add bottles")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -60,21 +62,21 @@ struct AddBottlesSheet: View {
             } else if hasSearched && results.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else if query.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 {
-                ContentUnavailableView("Find your bottle", systemImage: "wineglass",
-                    description: Text("Search the catalog, then choose the vintage and how many you own."))
+                PariEmptyNote(title: "Find your bottle.", message: "Search by wine or producer, then add the vintage and how many you own.").padding(.horizontal, 24)
             } else {
                 List(results) { wine in
                     Button {
                         selectedWine = wine
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(wine.name).font(.headline)
+                            Text(wine.name).font(PariTheme.wineNameFont(for: colorScheme))
                             Text(wine.producer).font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
                     .foregroundStyle(.primary)
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
             Spacer(minLength: 0)
         }
@@ -84,7 +86,7 @@ struct AddBottlesSheet: View {
     private func details(_ wine: Wine) -> some View {
         Form {
             Section {
-                Text(wine.name).font(.headline)
+                Text(wine.name).font(PariTheme.wineNameFont(for: colorScheme))
                 Text(wine.producer).foregroundStyle(.secondary)
                 Button("Choose another wine") { selectedWine = nil }
             }
@@ -106,6 +108,8 @@ struct AddBottlesSheet: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(PariTheme.background(for: colorScheme))
     }
 
     @MainActor

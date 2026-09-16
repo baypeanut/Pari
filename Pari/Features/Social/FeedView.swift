@@ -28,7 +28,9 @@ struct FeedView: View {
 
     var body: some View {
         mainContent
+            .navigationTitle("pari")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .principal) { Text("pari").font(PariTheme.editorialFont(size: 23)) } }
             .task {
                 viewModel.subscribeRealtime()
                 Task { await viewModel.refresh() }
@@ -84,51 +86,21 @@ struct FeedView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 0) {
-            HStack(spacing: 0) {
-                tabButton(.forYou, label: "For You")
-                tabButton(.global, label: "Global")
-                tabButton(.following, label: "Following")
-            }
-            Spacer()
-            NavigationLink {
-                UserDiscoveryView()
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(PariTheme.surfaceElevated(for: colorScheme))
-                        .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.06), radius: 10, x: 0, y: 4)
-                    Image(systemName: "person.fill.badge.plus")
-                        .font(.system(size: 17, weight: .regular))
+        VStack(spacing: 0) {
+            PariTabStrip {
+                PariSectionTab(title: "For You", selected: viewModel.tab == .forYou) { viewModel.switchTab(to: .forYou) }
+                PariSectionTab(title: "Global", selected: viewModel.tab == .global) { viewModel.switchTab(to: .global) }
+                PariSectionTab(title: "Following", selected: viewModel.tab == .following) { viewModel.switchTab(to: .following) }
+                NavigationLink { UserDiscoveryView() } label: {
+                    Image(systemName: "person.badge.plus").font(.system(size: 18))
                         .foregroundStyle(PariTheme.accent(for: colorScheme))
+                        .frame(width: 44, height: 44)
                 }
-                .frame(width: 34, height: 34)
                 .accessibilityLabel("Discover people")
             }
+            PariRule()
         }
         .padding(.horizontal, 24)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-    }
-
-    private func tabButton(_ tab: FeedViewModel.Tab, label: String) -> some View {
-        let isActive = viewModel.tab == tab
-        return Button {
-            viewModel.switchTab(to: tab)
-        } label: {
-            VStack(spacing: 6) {
-                Text(label)
-                    .font(PariTheme.uiFont(size: 15, weight: isActive ? .medium : .regular))
-                    .foregroundStyle(isActive ? PariTheme.accent(for: colorScheme) : (colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.secondaryText(for: colorScheme)))
-                Rectangle()
-                    .fill(isActive ? PariTheme.accentWine(for: colorScheme) : Color.clear)
-                    .frame(height: 2)
-                    .clipShape(Capsule())
-            }
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.15), value: isActive)
     }
 
     @ViewBuilder
@@ -354,9 +326,6 @@ struct FeedView: View {
         List {
             ForEach(Array(viewModel.items.enumerated()), id: \.element.id) { index, item in
                 VStack(spacing: 0) {
-                    if index > 0 && index % 5 == 0 {
-                        editorialPause
-                    }
                     FeedItemView(
                         item: item,
                         parts: viewModel.statementParts(for: item),
@@ -378,9 +347,8 @@ struct FeedView: View {
                         isTasteTwin: viewModel.isTwin(userId: item.userId),
                         friendsTastedCount: viewModel.friendsTastedCount(wineId: item.wineId)
                     )
-                    .padding(.horizontal, 16)
-                    .padding(.top, index > 0 && index % 5 == 0 ? 0 : PariTheme.cardSpacingVertical / 2)
-                    .padding(.bottom, PariTheme.cardSpacingVertical / 2)
+                    .padding(.horizontal, 24)
+                    PariRule().padding(.horizontal, 24)
                 }
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 .listRowSeparator(.hidden)

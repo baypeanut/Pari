@@ -149,20 +149,19 @@ struct TastingSessionView: View {
     // MARK: - Start
 
     private var startScreen: some View {
-        VStack(spacing: 28) {
-            VStack(spacing: 8) {
-                Image(systemName: "person.2.wave.2")
-                    .font(.system(size: 44, weight: .ultraLight))
-                    .foregroundStyle(PariTheme.accentWine(for: colorScheme))
-                Text("One bottle, several palates")
-                    .font(.system(.title3, design: .serif, weight: .regular))
+        ScrollView {
+        VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 16) {
+                PariEyebrow("Choose together")
+                Text("One bottle, several palates.")
+                    .font(PariTheme.editorialFont(size: 32))
                     .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                Text("Start a table and read the code out. We'll find the wine that suits everyone sitting at it.")
+                Text("Start a table and share the code. Explore wines through the tastes of the people joining you.")
                     .font(PariTheme.uiFont(size: 14))
                     .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.leading)
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 24)
 
             Button {
                 Task { await viewModel.host() }
@@ -172,7 +171,7 @@ struct TastingSessionView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(PariTheme.accentWine(for: colorScheme))
+                    .background(PariTheme.actionFill(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
@@ -211,7 +210,9 @@ struct TastingSessionView: View {
                 .padding(.horizontal, 32)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 28)
+        .padding(.bottom, 24)
+        }
     }
 
     // MARK: - At the table

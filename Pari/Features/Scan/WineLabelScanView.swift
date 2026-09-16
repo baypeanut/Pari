@@ -110,34 +110,17 @@ struct WineLabelScanView: View {
     // MARK: - Camera Placeholder
 
     private var cameraPlaceholder: some View {
-        VStack(spacing: 28) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 72, weight: .ultraLight))
-                .foregroundStyle(PariTheme.accentWine(for: colorScheme))
-            VStack(spacing: 8) {
-                Text("Point at a wine label")
-                    .font(.system(.title3, design: .serif, weight: .regular))
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                Text("Make sure the label is well-lit and in focus")
-                    .font(PariTheme.uiFont(size: 14))
-                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+        VStack(alignment: .leading, spacing: 20) {
+            PariEyebrow("Record a bottle")
+            PariEmptyNote(title: "Start with the label.", message: "Keep the bottle in focus and the label well lit. You can check the wine and vintage before saving.")
+            Button { showImagePicker = true } label: {
+                Label("Open camera", systemImage: "camera")
+                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
             }
-            Button {
-                showImagePicker = true
-            } label: {
-                Text("Open Camera")
-                    .font(PariTheme.uiFont(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PariTheme.accentWine(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding(.horizontal, 40)
-            }
+            .foregroundStyle(PariTheme.accent(for: colorScheme))
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     // MARK: - Processing View
@@ -168,10 +151,10 @@ struct WineLabelScanView: View {
     private func resultView(scan: LabelScanResult, wine: Wine?) -> some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 32) {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(PariTheme.accentWine(for: colorScheme))
-                    .padding(.top, 40)
+                PariEyebrow("Label read · check the details")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
 
                 VStack(alignment: .leading, spacing: 20) {
                     if let name = scan.name {
@@ -195,10 +178,10 @@ struct WineLabelScanView: View {
                         scanField(label: "Region", value: region)
                     }
                 }
-                .padding(20)
+                .padding(.vertical, 20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(PariTheme.surface(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(alignment: .top) { PariRule() }
+                .overlay(alignment: .bottom) { PariRule() }
                 .padding(.horizontal, 24)
 
                 VStack(spacing: 12) {
@@ -209,12 +192,12 @@ struct WineLabelScanView: View {
                             vintage = scan.vintage
                             viewModel.proceedToRating(wine)
                         } label: {
-                            Text("Rate This Wine")
+                            Text("Record this tasting")
                                 .font(PariTheme.uiFont(size: 16, weight: .medium))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(PariTheme.accentWine(for: colorScheme))
+                                .background(PariTheme.actionFill(for: colorScheme))
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .padding(.horizontal, 24)
@@ -307,7 +290,7 @@ struct WineLabelScanView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(PariTheme.accent(for: colorScheme))
+                    .background(PariTheme.actionFill(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.horizontal, 40)
             }
@@ -343,7 +326,7 @@ struct WineLabelScanView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(PariTheme.accent(for: colorScheme))
+                    .background(PariTheme.actionFill(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding(.horizontal, 40)
             }

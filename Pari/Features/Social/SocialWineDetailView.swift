@@ -92,19 +92,14 @@ struct SocialWineDetailView: View {
                         headerSection
                         ratingDashboardSection
                         hostReviewSection
+                        cheersBar
                         userReviewSection
                         if !groupedMutual.isEmpty {
                             mutualSection
                         }
-                        Spacer(minLength: 60)
+                        Spacer(minLength: 24)
                     }
                 }
-                VStack {
-                    Spacer()
-                    cheersBar
-                }
-                .allowsHitTesting(true)
-                .ignoresSafeArea(edges: .top)
             }
         }
         .navigationTitle("")
@@ -141,30 +136,20 @@ struct SocialWineDetailView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(wineTitleWithVintage)
-                .font(PariTheme.wineNameFont(for: colorScheme))
-                .foregroundStyle(wineColor)
-            HStack(spacing: 8) {
-                if !wine.producer.isEmpty {
-                    Text(wine.producer)
-                        .font(PariTheme.producerSerifFont())
-                        .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
-                }
-                if let region = wine.region, !region.isEmpty {
-                    Text(region)
-                        .font(PariTheme.detailFont())
-                        .foregroundStyle(PariTheme.tertiaryText(for: colorScheme))
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            PariEyebrow("From the journal")
+            Text(wine.producer).font(.subheadline)
+                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            Text(wineTitleWithVintage).font(PariTheme.editorialFont(size: 32))
+                .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+            if let region = wine.region, !region.isEmpty {
+                Text(region).font(.subheadline).foregroundStyle(PariTheme.textSecondary(for: colorScheme))
             }
-            if currentUserId != nil {
-                wishlistButton
-            }
+            if currentUserId != nil { wishlistButton }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
-        .padding(.top, 24)
-        .padding(.bottom, 8)
+        .padding(24)
     }
 
     private var wishlistButton: some View {
@@ -187,35 +172,29 @@ struct SocialWineDetailView: View {
     // MARK: - Rating Dashboard
 
     private var ratingDashboardSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Rectangle()
-                .fill(PariTheme.divider(for: colorScheme))
-                .frame(height: 1)
-            HStack(spacing: 0) {
-                ratingColumn(label: "You", value: userRating)
-                ratingColumn(label: "Twins", value: twinRating?.twinWeightedAvg, count: twinRating?.twinCount)
-                ratingColumn(label: "Global", value: twinRating?.communityAvg, count: twinRating?.communityCount)
+        VStack(alignment: .leading, spacing: 20) {
+            PariRule()
+            HStack {
+                VStack(alignment: .leading, spacing: 7) {
+                    PariEyebrow("Your rating")
+                    if let tasting = userTasting {
+                        Text(tasting.createdAt.formatted(date: .abbreviated, time: .omitted)).font(.caption)
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    } else {
+                        Text("Not tasted yet").font(.subheadline)
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    }
+                }
+                Spacer()
+                if let userRating { PariScore(value: userRating) }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                PariRatingEvidence(title: "Taste twins", rating: twinRating?.twinWeightedAvg, count: twinRating?.twinCount ?? 0)
+                PariRatingEvidence(title: "Community", rating: twinRating?.communityAvg, count: twinRating?.communityCount ?? 0)
             }
         }
-        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+        .padding(.horizontal, 24)
         .padding(.vertical, 12)
-    }
-
-    private func ratingColumn(label: String, value: Double?, count: Int? = nil) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(PariTheme.uiFont(size: 13, weight: .medium))
-                .foregroundStyle(PariTheme.tertiaryText(for: colorScheme))
-            Text(value != nil ? String(format: "%.1f", value!) : "\u{2014}")
-                .font(PariTheme.ratingFont())
-                .foregroundStyle(value != nil ? PariTheme.ratingColor(for: colorScheme) : PariTheme.textTertiary(for: colorScheme))
-            if let count, count > 0 {
-                Text("\(count)")
-                    .font(PariTheme.uiFont(size: 11))
-                    .foregroundStyle(PariTheme.tertiaryText(for: colorScheme))
-            }
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Host Review
@@ -249,7 +228,7 @@ struct SocialWineDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+        .padding(.horizontal, 24)
         .padding(.vertical, 14)
     }
 
@@ -286,7 +265,7 @@ struct SocialWineDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+            .padding(.horizontal, 24)
             .padding(.vertical, 14)
         }
     }
@@ -303,7 +282,7 @@ struct SocialWineDetailView: View {
             Text("Also tasted by")
                 .font(PariTheme.uiFont(size: 13, weight: .medium))
                 .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
-                .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+                .padding(.horizontal, 24)
             if !quickOnly.isEmpty {
                 quickRatingsRow(quickOnly)
             }
@@ -332,7 +311,7 @@ struct SocialWineDetailView: View {
                     .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+            .padding(.horizontal, 24)
         }
         .padding(.vertical, 8)
     }
@@ -372,21 +351,26 @@ struct SocialWineDetailView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
+        .padding(.horizontal, 24)
         .padding(.vertical, 10)
     }
 
     private var cheersBar: some View {
-        CheersButton(
-            hasCheered: hasCheered,
-            count: cheersCount,
-            isDisabled: currentUserId == nil || isCheering,
-            colorScheme: colorScheme,
-            onTap: { Task { await toggleCheers() } }
-        )
-        .padding(.horizontal, PariTheme.cardPaddingHorizontal)
-        .padding(.vertical, 12)
-        .background(PariTheme.background(for: colorScheme).opacity(0.95))
+        Button { Task { await toggleCheers() } } label: {
+            HStack(spacing: 8) {
+                Image(systemName: hasCheered ? "wineglass.fill" : "wineglass")
+                Text(cheersCount > 0 ? "Cheers · \(cheersCount)" : "Cheers")
+            }
+            .font(.subheadline)
+            .foregroundStyle(hasCheered ? PariTheme.accent(for: colorScheme) : PariTheme.textSecondary(for: colorScheme))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(currentUserId == nil || isCheering)
+        .accessibilityValue(hasCheered ? "Cheered" : "Not cheered")
+        .padding(.horizontal, 24)
+        .padding(.bottom, 12)
     }
 
     private func reviewAvatar(url: String?, displayName: String, size: CGFloat) -> some View {
@@ -419,17 +403,10 @@ struct SocialWineDetailView: View {
     }
 
     private func tasteTagsPills(_ tags: [String]) -> some View {
-        FlowLayout(spacing: 6) {
-            ForEach(tags, id: \.self) { tag in
-                Text(tag)
-                    .font(PariTheme.uiFont(size: 11))
-                    .foregroundStyle(wineColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(wineColor.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-        }
+        Text(tags.joined(separator: " · "))
+            .font(.subheadline)
+            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private func relativeTime(_ date: Date) -> String {

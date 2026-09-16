@@ -105,33 +105,17 @@ struct WineListScanView: View {
     // MARK: - Prompt
 
     private var prompt: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "doc.text.viewfinder")
-                .font(.system(size: 64, weight: .ultraLight))
-                .foregroundStyle(PariTheme.accentWine(for: colorScheme))
-            VStack(spacing: 8) {
-                Text("Photograph the wine list")
-                    .font(.system(.title3, design: .serif, weight: .regular))
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                Text("One page at a time reads best.")
-                    .font(PariTheme.uiFont(size: 14))
-                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+        VStack(alignment: .leading, spacing: 20) {
+            PariEyebrow("At the restaurant")
+            PariEmptyNote(title: "A little help with the list.", message: "Photograph one page at a time. We will read the wines and show how they relate to your palate.")
+            Button { showCamera = true } label: {
+                Label("Photograph the menu", systemImage: "camera")
+                    .font(.subheadline.weight(.medium)).frame(minHeight: 44)
             }
-            Button {
-                showCamera = true
-            } label: {
-                Text("Open Camera")
-                    .font(PariTheme.uiFont(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(PariTheme.accentWine(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding(.horizontal, 40)
-            }
-            .buttonStyle(.plain)
+            .foregroundStyle(PariTheme.accent(for: colorScheme))
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     private var reading: some View {

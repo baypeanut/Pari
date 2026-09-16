@@ -207,7 +207,7 @@ struct TasteDNAShareSheet: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(PariTheme.accent(for: colorScheme))
+                        .background(PariTheme.actionFill(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .padding(.horizontal, 24)

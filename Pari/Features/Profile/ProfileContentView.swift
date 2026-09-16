@@ -2,13 +2,14 @@
 //  ProfileContentView.swift
 //  Pari
 //
-//  Beli-style profile layout: header, Taste Snapshot + Streak/Goal cards, Recent Activity | Taste Profile tabs.
+//  Personal wine journal: identity, taste notes and a dated tasting ledger.
 //
 
 import SwiftUI
 
 struct ProfileContentView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var viewModel: ProfileViewModel
     var isOwn: Bool
     var isFollowing: Bool
@@ -34,7 +35,7 @@ struct ProfileContentView: View {
     var onMarkAsTasted: ((CellarItem) -> Void)?
     var onTwinTap: ((UUID) -> Void)?
 
-    enum MainTab: String, CaseIterable { case recentActivity = "Recently"; case tasteProfile = "Taste"; case wantToTry = "Reserve List" }
+    enum MainTab: String, CaseIterable { case recentActivity = "Recent"; case tasteProfile = "Taste"; case wantToTry = "Reserve List" }
     enum TasteSubTab: String, CaseIterable { case regions = "Regions"; case grapes = "Grapes" }
 
     @State private var mainTab: MainTab = .recentActivity
@@ -92,60 +93,36 @@ struct ProfileContentView: View {
     }
 
     private func header(_ p: Profile) -> some View {
-        VStack(spacing: 0) {
-            // Avatar — slightly larger for presence
-            avatar(p)
-                .padding(.bottom, 12)
-
-            // Full name — primary identity (serif, editorial weight)
-            if let name = p.fullName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
-                Text(name)
-                    .font(.system(.title3, design: .serif, weight: .regular))
-                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-                    .padding(.bottom, 2)
-            }
-
-            // @username + Instagram icon — subdued, supporting role
-            HStack(spacing: 6) {
-                Text("@\(p.username)")
-                    .font(PariTheme.uiFont(size: 13))
-                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                if let h = p.instagramHandle?.trimmingCharacters(in: .whitespacesAndNewlines), !h.isEmpty {
-                    InstagramIconButton(handle: h)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 8) {
+                    PariEyebrow(isOwn ? "Personal wine journal" : "Wine journal")
+                    Text(p.displayName)
+                        .font(PariTheme.editorialFont(size: 32))
+                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        Text("@\(p.username)").font(.subheadline)
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                        if let h = p.instagramHandle?.trimmingCharacters(in: .whitespacesAndNewlines), !h.isEmpty {
+                            InstagramIconButton(handle: h)
+                        }
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                avatar(p)
             }
-            .padding(.bottom, 10)
-
-            // Bio — now properly prominent
-            if let b = p.bioTrimmed, !b.isEmpty {
-                Text(b)
-                    .font(.system(size: 15, weight: .regular, design: .serif).italic())
+            if let bio = p.bioTrimmed, !bio.isEmpty {
+                Text(bio).font(.subheadline).lineSpacing(3)
                     .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 14)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
             statsRow
-                .padding(.bottom, isOwn ? 0 : 12)
-
             if !isOwn {
                 primaryButton(p)
-                if let sim = tasteSimilarity {
-                    TasteTwinBadge(similarity: sim)
-                        .padding(.top, 6)
-                }
+                if let sim = tasteSimilarity { TasteTwinBadge(similarity: sim) }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .padding(.horizontal, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(PariTheme.profileSectionBackground(for: colorScheme))
-                .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.04), radius: 8, x: 0, y: 2)
-        )
     }
 
     private func avatar(_ p: Profile) -> some View {
@@ -161,9 +138,8 @@ struct ProfileContentView: View {
                 avatarPlaceholder(p)
             }
         }
-        .frame(width: 96, height: 96)
+        .frame(width: 56, height: 56)
         .clipShape(Circle())
-        .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.08), radius: 6, x: 0, y: 2)
     }
 
     private func avatarPlaceholder(_ p: Profile) -> some View {
@@ -171,7 +147,7 @@ struct ProfileContentView: View {
             .fill(PariTheme.placeholderBackground(for: colorScheme))
             .overlay(
                 Text(String(p.displayName.prefix(1)).uppercased())
-                    .font(PariTheme.uiFont(size: 32, weight: .medium))
+                    .font(PariTheme.editorialFont(size: 27))
                     .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
             )
     }
@@ -181,7 +157,7 @@ struct ProfileContentView: View {
             Button {
                 onRatedTap?()
             } label: {
-                statItem(value: "\(viewModel.ratedCount)", label: "Rated")
+                statItem(value: "\(viewModel.ratedCount)", label: "Tastings")
             }
             .buttonStyle(.plain)
             Button {
@@ -201,14 +177,17 @@ struct ProfileContentView: View {
     }
 
     private func statItem(value: String, label: String) -> some View {
-        HStack(spacing: 4) {
-            Text(value)
-                .font(PariTheme.uiFont(size: 15, weight: .semibold))
-                .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
-            Text(label)
-                .font(PariTheme.uiFont(size: 15))
-                .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
+        VStack(alignment: .leading, spacing: 5) {
+            PariRule()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value).font(PariTheme.editorialFont(size: 24))
+                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                Text(label).font(.caption)
+                    .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            }
+            .padding(.top, 7)
         }
+        .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
     }
 
     private func primaryButton(_ p: Profile) -> some View {
@@ -227,7 +206,7 @@ struct ProfileContentView: View {
                             .foregroundStyle(isFollowing ? PariTheme.secondaryText(for: colorScheme) : .white)
                             .padding(.horizontal, 28)
                             .padding(.vertical, 12)
-                            .background(isFollowing ? PariTheme.placeholderBackground(for: colorScheme) : PariTheme.accent(for: colorScheme))
+                            .background(isFollowing ? PariTheme.placeholderBackground(for: colorScheme) : PariTheme.actionFill(for: colorScheme))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .disabled(isTogglingFollow)
@@ -248,81 +227,42 @@ struct ProfileContentView: View {
 
     @ViewBuilder
     private func tasteSnapshotCard(_ p: Profile) -> some View {
-        let row = HStack(spacing: 8) {
-            tasteSnapshotBox(icon: "heart.fill",          iconColor: PariTheme.accentWine(for: colorScheme),       value: TasteSnapshotOptions.labelForLoves(id: p.tasteSnapshotLoves))
-            tasteSnapshotBox(icon: "hand.thumbsdown.fill", iconColor: PariTheme.textTertiary(for: colorScheme), value: TasteSnapshotOptions.labelForAvoids(id: p.tasteSnapshotAvoids))
-            tasteSnapshotBox(icon: "face.smiling.fill",    iconColor: PariTheme.accentWine(for: colorScheme),   value: TasteSnapshotOptions.labelForMood(id: p.tasteSnapshotMood))
-        }
-        if isOwn, let onEdit {
-            Button(action: onEdit) {
-                row
+        let note = HStack(alignment: .top, spacing: 12) {
+            Rectangle().fill(PariTheme.accent(for: colorScheme)).frame(width: 2)
+            VStack(alignment: .leading, spacing: 7) {
+                tasteLine("Loves ·", TasteSnapshotOptions.labelForLoves(id: p.tasteSnapshotLoves))
+                tasteLine("Avoids ·", TasteSnapshotOptions.labelForAvoids(id: p.tasteSnapshotAvoids))
+                tasteLine("Mood ·", TasteSnapshotOptions.labelForMood(id: p.tasteSnapshotMood))
             }
-            .buttonStyle(.plain)
-        } else {
-            row
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if isOwn {
+                Image(systemName: "pencil").font(.system(size: 13))
+                    .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+            }
         }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, 2)
+        if isOwn, let onEdit {
+            Button(action: onEdit) { note }.buttonStyle(.plain)
+                .accessibilityHint("Edit your taste preferences")
+        } else { note }
     }
 
-    @ViewBuilder
-    private func tasteSnapshotBox(icon: String, iconColor: Color, value: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 15))
-                .foregroundStyle(iconColor)
-            Text(value)
-                .font(PariTheme.uiFont(size: 12))
-                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .padding(.horizontal, 6)
-        .background(PariTheme.surface(for: colorScheme))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(PariTheme.divider(for: colorScheme), lineWidth: 0.75))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func line(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(label)
-                .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
-            Text(value)
-                .foregroundStyle(.primary)
-        }
+    private func tasteLine(_ label: String, _ value: String) -> some View {
+        (Text(label + " ").foregroundColor(PariTheme.textSecondary(for: colorScheme))
+         + Text(value).foregroundColor(PariTheme.textPrimary(for: colorScheme)))
+            .font(.subheadline)
+            .multilineTextAlignment(.leading)
     }
 
     private var tabs: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
+            PariTabStrip {
                 ForEach(MainTab.allCases, id: \.self) { tab in
-                    let isActive = mainTab == tab
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            mainTab = tab
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            Text(tab.rawValue)
-                                .font(PariTheme.uiFont(size: 15, weight: isActive ? .medium : .regular))
-                                .foregroundStyle(isActive
-                                    ? PariTheme.accentWine(for: colorScheme)
-                                    : (colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.textSecondary(for: colorScheme)))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                            Rectangle()
-                                .fill(isActive ? PariTheme.accentWine(for: colorScheme) : Color.clear)
-                                .frame(height: 2)
-                                .clipShape(Capsule())
-                        }
-                        .animation(.easeInOut(duration: 0.15), value: isActive)
-                    }
-                    .buttonStyle(.plain)
+                    PariSectionTab(title: tab.rawValue, selected: mainTab == tab) { mainTab = tab }
                 }
             }
-            Rectangle()
-                .fill(PariTheme.divider(for: colorScheme))
-                .frame(height: 1)
+            PariRule()
         }
     }
 
@@ -386,11 +326,11 @@ struct ProfileContentView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.wine.producer)
-                    .font(colorScheme == .dark ? PariTheme.uiFont(size: 13, weight: .regular) : PariTheme.producerSerifFont())
+                    .font(.caption)
                     .foregroundStyle(colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.secondaryText(for: colorScheme))
                 Text(PariTheme.displayWineName(item.wine.name))
                     .font(PariTheme.wineNameFont(for: colorScheme))
-                    .foregroundStyle(colorScheme == .dark ? PariTheme.wineNameColor(for: colorScheme) : WineColorResolver.resolveWineDisplayColor(wine: item.wine))
+                    .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
                 if let r = item.wine.region, !r.isEmpty {
                     Text(r)
                         .font(PariTheme.uiFont(size: 12))
@@ -490,52 +430,47 @@ struct ProfileContentView: View {
     }
 
     private func tastingActivityRow(_ tasting: Tasting) -> some View {
-        let wine = tasting.displayVintage.map { "\($0) \(tasting.wine.name)" } ?? tasting.wine.name
         let cheersCount = viewModel.tastingCheersCounts[tasting.id] ?? 0
         return NavigationLink(destination: WineCardView(wine: tasting.wine, activityId: nil, currentUserId: viewModel.userId, sourceUserId: viewModel.userId, sourceContext: "profile")) {
-            HStack(alignment: .top, spacing: 12) {
-                cellarAvatarCircle()
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .top, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tasting.wine.producer)
-                                .font(colorScheme == .dark ? PariTheme.uiFont(size: 13, weight: .regular) : PariTheme.producerSerifFont())
-                                .foregroundStyle(colorScheme == .dark ? PariTheme.textTertiary(for: colorScheme) : PariTheme.secondaryText(for: colorScheme))
-                            Text(wine)
-                                .font(PariTheme.wineNameFont(for: colorScheme))
-                                .foregroundStyle(colorScheme == .dark ? PariTheme.wineNameColor(for: colorScheme) : WineColorResolver.resolveWineDisplayColor(wine: tasting.wine))
-                        }
-                        Spacer(minLength: 8)
-                        Text(String(Int(tasting.rating.rounded())))
-                            .font(colorScheme == .dark ? PariTheme.ratingFont() : PariTheme.uiFont(size: 18, weight: .semibold))
-                            .foregroundStyle(PariTheme.ratingColor(for: colorScheme))
-                    }
-                    
-                    if let comment = tasting.comment, !comment.isEmpty {
-                        Text(comment)
-                            .font(PariTheme.uiFont(size: 12).italic())
-                            .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                            .lineLimit(2)
-                    }
-                    
-                    HStack(spacing: 8) {
-                        if cheersCount > 0 {
-                            HStack(spacing: 4) {
-                                Text("\(cheersCount)")
-                                    .font(PariTheme.uiFont(size: 11))
-                                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                                Image(systemName: "wineglass.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                            }
-                        }
-                        Text(PariTheme.compactTimestamp(tasting.createdAt))
-                            .font(PariTheme.uiFont(size: 12))
-                            .foregroundStyle(PariTheme.textTertiary(for: colorScheme))
-                    }
+            HStack(alignment: .top, spacing: 14) {
+                if !dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tasting.createdAt.formatted(.dateTime.month(.abbreviated)).uppercased())
+                        .font(.system(.caption2, design: .monospaced))
+                    Text(tasting.createdAt.formatted(.dateTime.day()))
+                        .font(PariTheme.editorialFont(size: 25))
+                    Text(tasting.createdAt.formatted(.dateTime.year())).font(.system(.caption2, design: .monospaced))
                 }
+                .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                .frame(width: 38, alignment: .leading)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(tasting.createdAt.formatted(date: .abbreviated, time: .omitted)).font(.caption)
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    }
+                    Text(tasting.wine.producer).font(.caption)
+                        .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    Text(tasting.wine.name).font(PariTheme.wineNameFont(for: colorScheme))
+                        .foregroundStyle(PariTheme.textPrimary(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let vintage = tasting.displayVintage {
+                        Text("Vintage \(String(vintage))").font(.caption.monospacedDigit())
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    }
+                    if let comment = tasting.comment, !comment.isEmpty {
+                        Text(comment).font(.subheadline).lineLimit(2)
+                            .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                    }
+                    HStack(spacing: 8) {
+                        if cheersCount > 0 { Label("\(cheersCount)", systemImage: "wineglass").font(.caption2) }
+                    }
+                    .foregroundStyle(PariTheme.textSecondary(for: colorScheme))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                PariScore(value: tasting.rating)
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 18)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
