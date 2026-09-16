@@ -1,0 +1,135 @@
+{
+  "verified_on": "2026-09-16",
+  "ios_build": "passed",
+  "xctest": {
+    "passed": 63,
+    "failed": 0
+  },
+  "sql_node_tests": {
+    "passed": 37,
+    "failed": 0,
+    "includes_parent_tests": true
+  },
+  "live_http_checks": [
+    {
+      "check": "Authentication and profile creation",
+      "passed": true
+    },
+    {
+      "check": "Scan catalog write and embedding trigger",
+      "passed": true
+    },
+    {
+      "check": "Tasting create, replay, joined read, and private visibility",
+      "passed": true
+    },
+    {
+      "check": "Tasting update and explicit clearing",
+      "passed": true
+    },
+    {
+      "check": "feed_global",
+      "passed": true
+    },
+    {
+      "check": "feed_following",
+      "passed": true
+    },
+    {
+      "check": "search_wines",
+      "passed": true
+    },
+    {
+      "check": "get_my_taste_profile",
+      "passed": true
+    },
+    {
+      "check": "get_taste_twins",
+      "passed": true
+    },
+    {
+      "check": "recommend_wines",
+      "passed": true
+    },
+    {
+      "check": "get_curated_collections",
+      "passed": true
+    },
+    {
+      "check": "match_wine_list",
+      "passed": true
+    },
+    {
+      "check": "Inventory add/read/open, replay protection and open tonight",
+      "passed": true
+    },
+    {
+      "check": "Group host/join/read/recommend/leave with two authenticated users",
+      "passed": true
+    },
+    {
+      "check": "Reserve list add/read/remove",
+      "passed": true
+    },
+    {
+      "check": "Notification and privacy reads",
+      "passed": true
+    },
+    {
+      "check": "Tasting deletion and linked activity cleanup",
+      "passed": true
+    }
+  ],
+  "live_storage_checks": [
+    {
+      "check": "Private photo upload, owner read, stranger rejection, visibility change",
+      "passed": true
+    },
+    {
+      "check": "Block/unblock hides profile and photo through real RLS",
+      "passed": true
+    },
+    {
+      "check": "Report submission",
+      "passed": true
+    },
+    {
+      "check": "Avatar upload and rejection of another user overwrite",
+      "passed": true
+    }
+  ],
+  "live_scanner_checks": [
+    {
+      "check": "Label JPEG extraction",
+      "passed": true
+    },
+    {
+      "check": "Scanned label to catalog to tasting to joined history",
+      "passed": true
+    },
+    {
+      "check": "Wine list JPEG extraction to catalog matching",
+      "passed": true,
+      "extracted": 2,
+      "matched": 2
+    },
+    {
+      "check": "Both scanners reject anonymous callers",
+      "passed": true
+    }
+  ],
+  "schema_contract": {
+    "required_tables": 10,
+    "required_rpcs": 19,
+    "private_moment_images": true,
+    "passed": true
+  },
+  "limitations": [
+    "Physical camera capture",
+    "SMS/email delivery and account recovery",
+    "Permanent account deletion",
+    "Concurrent stock operations from two devices",
+    "Production load",
+    "Recommendation quality"
+  ]
+}

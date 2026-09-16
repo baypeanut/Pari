@@ -104,9 +104,9 @@ enum ClaudeVisionService {
         case 429:
             return "You've hit the scan limit for now. Try again in a little while."
         case 503:
-            return "Label scanning is temporarily unavailable. Please try again shortly."
+            return "Label scanning is temporarily unavailable. You can still search and add wines manually."
         default:
-            return "Label scanning unavailable (HTTP \(code))."
+            return "Could not scan the label. Please try again or search for the wine."
         }
     }
 }

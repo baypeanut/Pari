@@ -71,6 +71,7 @@ serve(async (req) => {
   }
 
   const apiKey = Deno.env.get("CLAUDE_API_KEY");
+  const workspaceId = Deno.env.get("ANTHROPIC_WORKSPACE_ID")?.trim();
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -147,6 +148,7 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "x-api-key": apiKey,
+        ...(workspaceId ? { "anthropic-workspace-id": workspaceId } : {}),
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
@@ -170,7 +172,10 @@ serve(async (req) => {
   if (!claudeRes.ok) {
     const errText = await claudeRes.text();
     console.error("Anthropic error", claudeRes.status, errText);
-    return json({ error: "List reading failed" }, claudeRes.status === 429 ? 429 : 502);
+    const configurationError = [401, 403].includes(claudeRes.status)
+      || (claudeRes.status === 400 && errText.includes("anthropic-workspace-id"));
+    const status = configurationError ? 503 : claudeRes.status === 429 ? 429 : 502;
+    return json({ error: "List reading failed" }, status);
   }
 
   const claudeJson = await claudeRes.json();

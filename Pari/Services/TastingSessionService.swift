@@ -184,13 +184,7 @@ enum TastingSessionService {
     }
 
     /// Leave a table. Consent you cannot withdraw is not consent.
-    static func leave(sessionId: UUID) async {
-        guard let userId = await AuthService.currentUserId() else { return }
-        _ = try? await supabase
-            .from("tasting_session_members")
-            .delete()
-            .eq("session_id", value: sessionId)
-            .eq("user_id", value: userId)
-            .execute()
+    static func leave(sessionId: UUID) async throws {
+        try await supabase.rpc("leave_tasting_session", params: ["p_session_id": sessionId.uuidString]).execute()
     }
 }

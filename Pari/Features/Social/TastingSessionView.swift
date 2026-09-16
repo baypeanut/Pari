@@ -25,6 +25,8 @@ final class TastingSessionViewModel {
 
     var step: Step = .start
     var joinCode = ""
+    var operationError: String?
+    var isLeaving = false
 
     func host() async {
         step = .working
@@ -54,21 +56,33 @@ final class TastingSessionViewModel {
     }
 
     private func loadSuggestions(for session: TastingSession) async {
+        operationError = nil
         do {
             let wines = try await TastingSessionService.suggestions(sessionId: session.id)
             step = .atTable(session, wines)
         } catch {
-            // The table exists even if we cannot rank for it yet, so stay in it.
+            operationError = "Could not load suggestions. Please refresh to try again."
             step = .atTable(session, [])
         }
     }
 
-    func leave() async {
-        if case .atTable(let session, _) = step {
-            await TastingSessionService.leave(sessionId: session.id)
+    @discardableResult
+    func leave() async -> Bool {
+        guard !isLeaving else { return false }
+        isLeaving = true
+        operationError = nil
+        defer { isLeaving = false }
+        do {
+            if case .atTable(let session, _) = step {
+                try await TastingSessionService.leave(sessionId: session.id)
+            }
+            joinCode = ""
+            step = .start
+            return true
+        } catch {
+            operationError = "Could not leave the table. Please try again."
+            return false
         }
-        joinCode = ""
-        step = .start
     }
 }
 
@@ -83,15 +97,21 @@ struct TastingSessionView: View {
         NavigationStack {
             ZStack {
                 PariTheme.background(for: colorScheme).ignoresSafeArea()
-                content
+                VStack {
+                    if let error = viewModel.operationError {
+                        Text(error).foregroundStyle(.red).padding()
+                    }
+                    content
+                }
             }
             .navigationTitle("The Table")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
-                        Task { await viewModel.leave(); isPresented = false }
+                        Task { if await viewModel.leave() { isPresented = false } }
                     }
+                    .disabled(viewModel.isLeaving)
                     .font(PariTheme.uiFont(size: 15))
                     .foregroundStyle(PariTheme.accent(for: colorScheme))
                 }

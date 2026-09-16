@@ -20,8 +20,11 @@ The 13 cellar scenarios cover additive stock changes, unknown and known vintages
 replay receipts, mismatched requests, ownership, empty stock, input validation,
 direct-write restrictions, rollback in both directions and integer overflow.
 
-All four new migrations run verbatim across the two fixture databases. Node reports
-31 tests: 29 scenarios plus their two parent tests.
+The September 11, 12 and 16 migrations run verbatim across the relevant fixture
+databases. The session test covers host/join/read/leave, repeat leave and access
+by an outsider. Four moderation scenarios cover mutual blocks, private report
+submission, uppercase UUID avatar ownership and removal of anonymous profile writes.
+Node reports **37 passing tests**, including parent tests.
 
 This is **not a full Supabase stack test**: Auth and Storage infrastructure are
 fixtures; the pgvector helper is a permission-test stub; embedding triggers,
@@ -29,3 +32,6 @@ PostgREST serialization, real object downloads, CDN behavior and parallel networ
 requests require staging verification. Replay tests use sequential requests.
 PostgreSQL's primary-key conflict handling serializes concurrent saves of the
 same ID, but that needs an API-level concurrency check before release.
+
+For the September 16 real PostgreSQL, live HTTP, Storage and iOS verification,
+see [the backend repair report](../../docs/engineering/backend-repair-2026-09-16.md).

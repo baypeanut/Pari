@@ -22,7 +22,7 @@ enum MomentStorageService {
             .upload(
                 name,
                 data: jpegData,
-                options: FileOptions(contentType: contentType, upsert: false)
+                options: FileOptions(cacheControl: "0", contentType: contentType, upsert: false)
             )
         return name
     }
@@ -44,6 +44,12 @@ enum MomentStorageService {
 
     static func downloadMoment(reference: String) async throws -> Data {
         guard let path = objectPath(from: reference) else { throw URLError(.badURL) }
-        return try await supabase.storage.from(bucket).download(path: path)
+        // Supabase's CDN can serve a previously authorized private object after
+        // visibility or block relationships change. A fresh URL forces the
+        // Storage service to evaluate the current RLS policies on every fetch.
+        return try await supabase.storage.from(bucket).download(
+            path: path,
+            query: [URLQueryItem(name: "authorization_check", value: UUID().uuidString)]
+        )
     }
 }

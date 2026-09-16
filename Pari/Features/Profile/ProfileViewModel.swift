@@ -40,6 +40,16 @@ final class ProfileViewModel {
     var isLoading: Bool { isLoadingInitial || isRefreshing }
 
     private var loadId = UUID()
+    private var tastingLoadId = UUID()
+    private let fetchTastings: (UUID) async throws -> [Tasting]
+    private let fetchCheers: ([UUID]) async -> [UUID: Int]
+    private(set) var isLoadingTastings = false
+    private(set) var hasLoadedTastings = false
+    private(set) var tastingsErrorMessage: String?
+
+    var showsEmptyTastings: Bool {
+        hasLoadedTastings && !isLoadingTastings && tastingsErrorMessage == nil && allTastings.isEmpty
+    }
 
     /// Top 5 tastings for Recent Activity; sorted by createdAt desc (tastedAt when in schema).
     var recentTastingsTop5: [Tasting] {
@@ -58,8 +68,39 @@ final class ProfileViewModel {
         isOwn || privacySettings.activityVisibility == .everyone || (privacySettings.activityVisibility == .friends && isViewerFriend)
     }
 
-    init(userId: UUID) {
+    init(
+        userId: UUID,
+        fetchTastings: @escaping (UUID) async throws -> [Tasting] = { try await TastingService.fetchTastings(userId: $0, limit: 200) },
+        fetchCheers: @escaping ([UUID]) async -> [UUID: Int] = { await TastingService.fetchLikeCountsForTastings(tastingIds: $0) }
+    ) {
         self.userId = userId
+        self.fetchTastings = fetchTastings
+        self.fetchCheers = fetchCheers
+    }
+
+    /// A failed request is not an empty history. Keep previously loaded entries
+    /// visible and let the user retry this section without reloading the profile.
+    func reloadTastings() async {
+        let requestId = UUID()
+        tastingLoadId = requestId
+        isLoadingTastings = true
+        tastingsErrorMessage = nil
+        defer { if tastingLoadId == requestId { isLoadingTastings = false } }
+        do {
+            let tastings = try await fetchTastings(userId)
+            let cheers = await fetchCheers(tastings.map(\.id))
+            guard tastingLoadId == requestId, !Task.isCancelled else { return }
+            allTastings = tastings
+            tastingCheersCounts = cheers
+            let taste = ProfileService.computeTasteProfile(from: tastings)
+            tasteGrapes = taste.grapes
+            tasteRegions = taste.regions
+            tasteStyles = taste.styles
+            hasLoadedTastings = true
+        } catch {
+            guard tastingLoadId == requestId, !isCancellation(error) else { return }
+            tastingsErrorMessage = "Could not load tastings. Please try again."
+        }
     }
 
     func load() async {
@@ -79,93 +120,70 @@ final class ProfileViewModel {
         var newRatedCount: Int?
         var newFollowersCount: Int?
         var newFollowingCount: Int?
-        var newTastings: [Tasting]?
-        var newTasteProfile: (grapes: [TasteProfileItem], regions: [TasteProfileItem], styles: [TasteProfileItem])?
         var newWishlistPreview: [CellarItem]?
         var newMyWishlistWineIds: Set<UUID>?
-        var newCheersCounts: [UUID: Int]?
 
         let current = await AuthService.currentUserId()
-        guard loadId == currentLoadId else {
-            if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }
-            return
-        }
+        guard loadId == currentLoadId else { return }
         isOwn = (current == uid)
 
         do {
             if let dev = await DevSignupService.fetchDevAccount(userId: uid) {
-                guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+                guard loadId == currentLoadId else { return }
                 newProfile = dev
             } else {
                 let p = try await AuthService.getProfile(userId: uid)
-                guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+                guard loadId == currentLoadId else { return }
                 newProfile = p
             }
         } catch {
-            guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+            guard loadId == currentLoadId else { return }
             if !isCancellation(error) { errorMessage = ErrorMessage.userFacing(for: error) }
         }
 
         let countTask = Task { await TastingService.fetchTastingsCount(userId: uid) }
         let followersTask = Task { await SocialService.fetchFollowerCount(userId: uid) }
         let followingTask = Task { await SocialService.fetchFollowingCount(userId: uid) }
-        let tastingsTask = Task { try await TastingService.fetchTastings(userId: uid, limit: 200) }
+        let tastingsTask = Task { await self.reloadTastings() }
         let wishlistTask = Task { try await CellarService.fetchWishlist(userId: uid, limit: 15) }
         let myWishlistTask: Task<Set<UUID>, Error>? = (current != nil && current != uid) ? Task { try await CellarService.fetchWishlistWineIds(userId: current!) } : nil
         let privacyTask = Task { try? await ProfileService.fetchPrivacySettings(userId: uid) }
         let isFriendTask: Task<Bool, Never>? = (current != nil && current != uid) ? Task { await ProfileService.isMutualFriend(viewerId: current!, ownerId: uid) } : Task { true }
 
         newRatedCount = await countTask.value
-        guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+        guard loadId == currentLoadId else { return }
         newFollowersCount = await followersTask.value
-        guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+        guard loadId == currentLoadId else { return }
         newFollowingCount = await followingTask.value
-        guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+        guard loadId == currentLoadId else { return }
 
-        do {
-            let tastings = try await tastingsTask.value
-            guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
-            newTastings = tastings
-            newTasteProfile = ProfileService.computeTasteProfile(from: tastings)
-            newCheersCounts = await TastingService.fetchLikeCountsForTastings(tastingIds: tastings.map(\.id))
-        } catch {
-            guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
-            if !isCancellation(error) { errorMessage = ErrorMessage.userFacing(for: error) }
-        }
+        await tastingsTask.value
+        guard loadId == currentLoadId else { return }
 
         do {
             let items = try await wishlistTask.value
-            guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+            guard loadId == currentLoadId else { return }
             newWishlistPreview = items
         } catch {
-            guard loadId == currentLoadId else { if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }; return }
+            guard loadId == currentLoadId else { return }
             if !isCancellation(error) { errorMessage = ErrorMessage.userFacing(for: error) }
         }
 
         if let task = myWishlistTask {
             newMyWishlistWineIds = (try? await task.value) ?? []
         }
-        privacySettings = await privacyTask.value ?? .default
-        isViewerFriend = await (isFriendTask?.value ?? true)
-
-        if loadId != currentLoadId {
-            if isFirstLoad { isLoadingInitial = false } else { isRefreshing = false }
-            return
-        }
+        let loadedPrivacy = await privacyTask.value
+        let loadedFriend = await (isFriendTask?.value ?? true)
+        guard loadId == currentLoadId else { return }
+        if let loadedPrivacy { privacySettings = loadedPrivacy }
+        isViewerFriend = loadedFriend
 
         if let p = newProfile { profile = p }
         if let c = newRatedCount { ratedCount = c }
         if let f = newFollowersCount { followersCount = f }
         if let f = newFollowingCount { followingCount = f }
-        if let t = newTastings { allTastings = t }
-        if let c = newCheersCounts { tastingCheersCounts = c }
         if let w = newWishlistPreview { wishlistPreview = w }
         if let w = newMyWishlistWineIds { myWishlistWineIds = w }
-        if let tp = newTasteProfile {
-            tasteGrapes = tp.grapes
-            tasteRegions = tp.regions
-            tasteStyles = tp.styles
-        }
 
         isLoadingInitial = false
         isRefreshing = false

@@ -5,8 +5,7 @@
 //  Submits user reports to the `reports` Supabase table.
 //  Apple App Store Section 1.2 requirement for UGC apps.
 //
-//  ⚠️ MANUAL SUPABASE STEP REQUIRED — create the `reports` table before this will work.
-//  See: docs/supabase_manual_steps.md
+//  Backend contract: 20260916000001_moderation_contract.sql.
 //
 
 import Foundation
@@ -43,7 +42,7 @@ enum ReportContentType: String {
 enum ReportService {
     static var supabase: SupabaseClient { SupabaseManager.shared.supabase }
 
-    /// Submit a content report. Requires `reports` table in Supabase (see manual steps).
+    /// Submit a content report. Requires an authenticated session.
     static func submitReport(
         contentType: ReportContentType,
         contentId: UUID,

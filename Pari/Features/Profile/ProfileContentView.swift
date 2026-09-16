@@ -456,16 +456,34 @@ struct ProfileContentView: View {
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 24)
                     .frame(maxWidth: .infinity)
-            } else if viewModel.recentTastingsTop5.isEmpty {
-                Text("No tastings yet.")
-                    .font(PariTheme.uiFont(size: 15))
-                    .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
-                    .padding(.vertical, 24)
-                    .frame(maxWidth: .infinity)
             } else {
-                ForEach(viewModel.recentTastingsTop5) { tasting in
-                    tastingActivityRow(tasting)
-                    Rectangle().fill(PariTheme.border(for: colorScheme)).frame(height: 1).padding(.leading, 0)
+                if let error = viewModel.tastingsErrorMessage {
+                    VStack(spacing: 12) {
+                        Text(error)
+                            .font(PariTheme.uiFont(size: 15))
+                            .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                        Button("Retry") { Task { await viewModel.reloadTastings() } }
+                            .disabled(viewModel.isLoadingTastings)
+                            .accessibilityIdentifier("profile.retryTastings")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                }
+                if viewModel.isLoadingTastings {
+                    ProgressView("Loading tastings…")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                } else if viewModel.showsEmptyTastings {
+                    Text("No tastings yet.")
+                        .font(PariTheme.uiFont(size: 15))
+                        .foregroundStyle(PariTheme.secondaryText(for: colorScheme))
+                        .padding(.vertical, 24)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    ForEach(viewModel.recentTastingsTop5) { tasting in
+                        tastingActivityRow(tasting)
+                        Rectangle().fill(PariTheme.border(for: colorScheme)).frame(height: 1)
+                    }
                 }
             }
         }

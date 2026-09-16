@@ -402,12 +402,15 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.compute_wine_embedding(text, text, text) TO authenticated;
 
+-- Remove the obsolete graph first. Updating 100k indexed vectors individually
+-- before discarding that same graph can take minutes on a small hosted instance.
+DROP INDEX IF EXISTS public.idx_wines_embedding_hnsw;
+
 -- The trigger already calls compute_wine_embedding; recompute every row against v2.
 UPDATE public.wines
 SET embedding = compute_wine_embedding(category, variety, region);
 
 -- HNSW graph was built over v1 vectors; rebuild it for the new distribution.
-DROP INDEX IF EXISTS public.idx_wines_embedding_hnsw;
 CREATE INDEX idx_wines_embedding_hnsw
   ON public.wines USING hnsw (embedding vector_cosine_ops);
 

@@ -5,10 +5,7 @@
 //  Block/unblock users. Blocked users are hidden from feed and profile.
 //  Apple App Store Section 1.2 requirement for UGC apps.
 //
-//  ⚠️ MANUAL SUPABASE STEPS REQUIRED:
-//  1. Create `blocks` table
-//  2. Update `feed_global` and `feed_following` RPCs to filter blocked users
-//  See: docs/supabase_manual_steps.md
+//  Backend contract: 20260916000001_moderation_contract.sql.
 //
 
 import Foundation
@@ -17,7 +14,7 @@ import Supabase
 enum BlockService {
     static var supabase: SupabaseClient { SupabaseManager.shared.supabase }
 
-    /// Block a user. Requires `blocks` table in Supabase (see manual steps).
+    /// Block a user. The backend also filters blocked content through RLS.
     static func blockUser(blockedId: UUID) async throws {
         guard let blockerId = await AuthService.currentUserId() else { return }
         let payload: [String: String] = [
