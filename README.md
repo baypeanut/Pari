@@ -1,140 +1,132 @@
 # Pari
 
-An iOS app for people who drink wine and want to remember what they liked.
+Pari is an iOS app for remembering the wines you drink and making the next bottle easier to choose.
 
-You log a wine, give it a score out of ten, and add a note if you feel like it. Over time Pari learns your palate, finds the other users whose ratings line up with yours, and uses them to suggest bottles you have not tried.
+Record a wine, rate it out of ten, and keep the vintage, tasting notes, occasion, and visibility with that specific tasting. As the history grows, Pari builds a palate profile, finds people with similar taste, and uses that evidence to rank wines the user has not tried.
 
-> **Source-available, not open source.** This repository is published so the work can be read. It is not set up to be cloned and run, there are no setup instructions, and no licence to use the code is granted. See [LICENSE](LICENSE).
+> **Source-available, not open source.** This repository is published so the work can be read and evaluated. It is not distributed with a licence to use, modify, or redistribute the code. See [LICENSE](LICENSE).
 
----
+## The product
 
-## What it does
+- **Remember a bottle.** Search a catalogue of roughly 100,000 wines or scan a label, then save a rating, vintage, notes, comment, and optional moment photo.
+- **Control who sees the memory.** Each tasting can be public or friends-only. Profile, cellar, and reserve-list visibility are enforced separately.
+- **Choose from a restaurant list.** Photograph a wine list, match recognised entries to the catalogue, and rank them for the user's palate. Uncertain matches stay visibly unidentified instead of being guessed.
+- **Choose together.** A shared table session combines several people's preferences and rejects candidates that fall below a minimum fit for anyone at the table.
+- **Track physical bottles.** The cellar records quantity, vintage, purchase details, and storage location. “Open tonight” uses estimated drinking windows to surface bottles that should not be forgotten.
+- **Learn without requiring expertise.** A six-axis tasting structure is available to experienced users and stays out of the way for beginners.
 
-**Log a wine.** Search a catalogue of about 100,000, or point the camera at a label and let the app read it.
+Pari is built around personal memory and decision support. It does not try to turn a global crowd score into a universal verdict about a wine.
 
-**Score it.** One slider, 1.0 to 10.0. A structural grid (acidity, tannin, body) is there for people who want it and hidden from people who do not.
-
-**Scan a wine list.** Photograph a restaurant list and get every wine on it ranked for your palate, with the ones we cannot identify shown as unidentified rather than guessed.
-
-**Sit at a table.** Start a shared session, read a five-character code out, and get the bottle that suits everyone sitting there.
-
-**Keep a cellar.** Bottles you own, with estimated drinking windows and a view of what to open tonight before it closes.
-
----
-
-## How it fits together
+## How it works
 
 ```mermaid
-flowchart TD
-    A[iPhone app<br/>SwiftUI] -->|search, log, read feed| B[(Supabase<br/>Postgres + Auth + Storage)]
-    A -->|photo of a label or a list| C[Edge functions]
-    C -->|reads the image| D[Claude]
+flowchart LR
+    A[SwiftUI iPhone app] -->|auth, catalogue, tastings, social, cellar| B[(Supabase)]
+    A -->|label or wine-list image| C[Supabase Edge Functions]
+    C -->|server-side image reading| D[Claude]
     C --> B
-    B -->|suggestions| A
+    B -->|palate profile and ranked candidates| A
 
     style A fill:#4A0E0E,color:#fff
+    style B fill:#202321,color:#fff
     style D fill:#8B6F47,color:#fff
 ```
 
-There is no server of our own. The app talks to Supabase, which handles the database, sign in and file storage. The exception is image reading, which goes through small edge functions so the API key stays server-side and never ships inside the app.
+Supabase provides Postgres, authentication, row-level security, storage, realtime events, and edge functions. Image-reading credentials remain server-side; no Anthropic key is included in the app binary.
 
----
+Recommendations combine semantic wine structure, the user's own history, similar tasters, and community evidence. The evaluation harness measures ranking quality, catalogue coverage, and concentration so a recommender cannot look successful merely by showing the same popular bottles to everyone.
 
-## The interesting part
+## Engineering decisions
 
-Most of the work was not adding features. It was finding out that things which looked like they worked did not.
+### A vintage belongs to a tasting
 
-### Vintage was on the wrong table
+The catalogue represents a wine across releases, while a vintage describes the bottle someone actually drank. Pari stores vintage on the tasting and physical bottle rather than allowing a scan to rewrite a shared catalogue row.
 
-A row in `wines` is a *wine*, not a bottle. "Opus One" is one row covering every year it has ever been made. But vintage was stored on that row, and the label scanner wrote to it. So the first person to scan a 2019 stamped that year onto the shared catalogue entry, and everyone who logged that wine afterwards recorded a vintage they had never drunk.
+### A tasting is one atomic operation
 
-The fix was to move vintage onto the tasting, where it belongs, and stop the scanner writing to the catalogue at all.
+Saving a tasting and publishing its matching activity happen in one database transaction. Every attempt carries an idempotency key, so retrying after a timeout confirms the original write instead of creating a duplicate. The same replay protection is used for bottle inventory changes.
 
-### The taste model had never run
+### Privacy is checked where the data lives
 
-Wine similarity is computed from a 64-dimension vector per user, built from the wines they rated. The function that builds it cast a `vector` to `double precision[]`, which pgvector does not support. It raised on the first row it touched.
+Visibility is enforced by Postgres policies and RPCs, not only by hiding controls in SwiftUI. The rules cover direct tasting reads, feed queries, profile sections, private moment photos, block relationships, and storage ownership.
 
-Every caller in the app caught the error and returned nothing, so it surfaced as "no taste twins yet" rather than as a failure. The content-based half of the recommendation engine had been dead the whole time and looked like a product that had not warmed up yet.
+### Unknown is better than wrong
 
-That one only turned up when the migrations were run against a real Postgres for the first time.
+The label and wine-list flows validate provider output before using it. Low-confidence menu matches remain unmatched, provider failures keep manual search available, and the app distinguishes an empty history from a history that failed to load.
 
-### The embedding did not mean anything
+### Similarity needs meaning
 
-Wine vectors were built by hashing the grape and region strings. Deterministic, cheap, and carrying no meaning at all: Cabernet Sauvignon and Cabernet Franc hashed to unrelated bit patterns.
+Wine embeddings use a varietal and region taxonomy plus observed tasting structure. Hashing remains only as a fallback for terms the taxonomy does not recognise. User taste vectors and taste-twin similarity are computed in Postgres with pgvector and retrieved through bounded RPCs.
 
-| | old | new |
-|---|---:|---:|
-| Cabernet Sauvignon ↔ Cabernet Franc | −0.15 | 0.99 |
-| Bordeaux blend ↔ its lead grape | 0.37 | 1.00 |
-| Cabernet Sauvignon ↔ Riesling | 0.25 | 0.21 |
-
-The old numbers were not just low, they were in the wrong order. An unrelated pair scored *higher* than two grapes from the same family. Rebuilt from a varietal and region taxonomy, with hashing kept only as a fallback for terms it does not recognise.
-
-### One bottle, several palates
-
-Four people at a table is a social choice problem, and it has more than one honest answer. Ranking by the average can pick a wine one person dislikes. Ranking by the worst-served person picks the bottle nobody objects to and nobody wants.
-
-Pari ranks by the average but excludes any wine where someone falls below a floor. The failure that matters at a table is one person stuck with a glass they hate, so that one is made impossible rather than merely unlikely.
-
-### Why it does not just show a rating out of five
-
-A global average has one target, and producers can aim at it. Wine has already run that experiment: under the 100-point regime, styles narrowed toward whatever scored well. A network of personal predictions has no single target to aim at.
-
-So the number Pari shows is "8.7 for you", not "8.7 out of 10", and it names the people it came from.
-
----
-
-## The data
+## Data model
 
 ```mermaid
 erDiagram
-    PROFILES ||--o{ TASTINGS : "logs"
-    WINES    ||--o{ TASTINGS : "is rated in"
-    PROFILES ||--o{ TASTE_SIMILARITY : "is matched with"
-    PROFILES ||--o{ CELLAR_BOTTLES : "owns"
-    TASTING_SESSIONS ||--o{ SESSION_MEMBERS : "seats"
+    PROFILES ||--o{ TASTINGS : records
+    WINES ||--o{ TASTINGS : appears_in
+    PROFILES ||--o{ TASTE_SIMILARITY : matches
+    PROFILES ||--o{ CELLAR_BOTTLES : owns
+    TASTING_SESSIONS ||--o{ SESSION_MEMBERS : seats
 
     WINES {
         text name
-        text variety "grape or blend"
+        text producer
+        text variety
         text region
-        vector embedding "64 numbers describing style"
+        vector embedding
         real embedding_confidence
     }
     TASTINGS {
-        float rating "1.0 to 10.0"
-        int vintage "the year on YOUR bottle"
-        int acidity "WSET 1-5"
-        int tannin "WSET 1-5"
-        int body "WSET 1-5"
-    }
-    TASTE_SIMILARITY {
-        float score "0 to 1"
-        int shared_count
+        float rating
+        int vintage
+        text visibility
+        int acidity
+        int tannin
+        int body
+        int sweetness
+        int aroma_intensity
+        int finish
     }
     CELLAR_BOTTLES {
         int quantity
         int vintage
         date purchase_date
+        text location
+    }
+    TASTE_SIMILARITY {
+        float score
+        int shared_count
     }
 ```
 
-The structural columns follow the WSET Systematic Approach to Tasting rather than a private vocabulary, because that scale is already taught in over 70 countries and anyone learning it here is learning something portable.
+The optional structural fields follow the WSET-style low-to-high scale. Catalogue traits provide a starting estimate; aggregated real tastings can gradually replace that prior as evidence accumulates.
 
-Those six numbers also do more work than the score does. The grape taxonomy gives each wine a starting guess at its structure; real tastings then move it, weighted so that the crowd overtakes the guess at around five observations. The catalogue gets more accurate every time somebody drinks something.
+## Reliability and verification
 
----
+The current backend contract includes atomic tasting writes, per-tasting privacy, private photo access, cursor-based feeds, group sessions, bottle inventory, recommendations, moderation, and both scanning functions.
 
-## Built with
+The repaired production-backed build was checked with:
 
-SwiftUI on iOS 17 and up. Supabase for database, auth and storage, with pgvector for the taste matching and HNSW for retrieval. Claude for reading labels and wine lists. Catalogue from the [X-Wines dataset](https://github.com/rogerioxavier/X-Wines), public domain.
+- 63 iOS unit tests;
+- 37 repeatable SQL regression tests;
+- isolated PostgreSQL 17 with pgvector;
+- live Auth, PostgREST, Storage, row-level-security, inventory, group-session, and scanning scenarios;
+- an authenticated iPhone 17 Pro simulator session using the existing profile and tasting history.
 
-Recommendations are measured, not assumed: there is an evaluation harness reporting NDCG, catalogue coverage and a concentration metric, because a recommender that scores well by showing everyone the same forty bottles has moved the problem rather than solved it.
+These checks cover the tested contracts, not every production condition. Physical-device camera capture, SMS and email delivery, account recovery, destructive account deletion, concurrent stock races across two devices, recommendation quality over time, and production load still require separate validation.
 
----
+Detailed verification notes are in [the backend repair report](docs/engineering/backend-repair-2026-09-16.md).
+
+## Stack
+
+- SwiftUI, iOS 17+
+- Supabase Postgres, Auth, Storage, Realtime, and Edge Functions
+- pgvector with HNSW retrieval
+- Claude for label and wine-list image reading through server-side proxies
+- [X-Wines](https://github.com/rogerioxavier/X-Wines) as the public-domain catalogue source
 
 ## Status
 
-In development, not released. Screenshots and a TestFlight link will go here when there is something worth showing.
+Pari is in active development and is not publicly released. The app runs against its live backend, but release work still includes physical-device testing, operational monitoring, App Store assets, and a broader accessibility pass.
 
-Questions about the work are welcome at aderici@unc.edu. Requests to use the code are covered by [LICENSE](LICENSE).
+Questions about the engineering work are welcome at aderici@unc.edu. Requests to use the code are governed by [LICENSE](LICENSE).
